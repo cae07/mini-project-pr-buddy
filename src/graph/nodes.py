@@ -1,6 +1,6 @@
 from pathlib import Path
 from tools.report_tool import write_report
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 def load_diff(state):
     content = Path(
@@ -20,8 +20,8 @@ def validate_input(state):
 
     return state
 
-llm = ChatOpenAI(
-    model="gpt-4o-mini"
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash"
 )
 
 def analyze_pr(state):
