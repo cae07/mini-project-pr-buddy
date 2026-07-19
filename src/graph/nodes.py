@@ -2,6 +2,9 @@ from pathlib import Path
 from tools.report_tool import write_report
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+import json
+import re
+
 import os
 from dotenv import load_dotenv
 
@@ -37,39 +40,77 @@ llm = ChatGoogleGenerativeAI(
 )
 
 def analyze_pr(state):
+    diff_content = state["diff_content"]
 
     prompt = f"""
-Você é um revisor de código.
+Você é um agente revisor de Pull Requests.
 
-Analise o diff abaixo.
+Analise o conteúdo abaixo e identifique possíveis riscos para revisão de código.
 
-Retorne:
+Critérios de análise:
+- ausência de testes;
+- alterações relacionadas a autenticação ou autorização;
+- mudanças em arquivos de configuração;
+- riscos de segurança;
+- falta de documentação;
+- impacto em funcionalidades existentes;
+- clareza geral das alterações.
 
-1. Resumo
-2. Lista de riscos
-3. Recomendação:
-   APROVAR
-   ATENCAO
-   BLOQUEAR
+Retorne apenas um JSON válido no seguinte formato:
 
-Diff:
-{state['diff_content']}
+{{
+  "summary": "Resumo objetivo das alterações analisadas.",
+  "risks": [
+    "Risco ou ponto de atenção identificado."
+  ],
+  "recommendation": "APROVAR | ATENCAO | BLOQUEAR"
+}}
+
+Regras:
+- Use APROVAR apenas quando não houver riscos relevantes.
+- Use ATENCAO quando houver pontos que precisam de revisão humana.
+- Use BLOQUEAR quando houver risco crítico, ausência grave de validação ou possível exposição de dados sensíveis.
+- Não inclua texto fora do JSON.
+
+Conteúdo para análise:
+{diff_content}
 """
 
     response = llm.invoke(prompt)
+    raw_content = response.content.strip()
 
-    text = response.content
+    # Remove blocos markdown caso a LLM retorne ```json ... ```
+    cleaned_content = re.sub(
+        r"^```json\s*|\s*```$",
+        "",
+        raw_content,
+        flags=re.IGNORECASE | re.MULTILINE
+    ).strip()
 
-    recommendation = "ATENCAO"
+    try:
+        result = json.loads(cleaned_content)
+    except json.JSONDecodeError:
+        result = {
+            "summary": raw_content,
+            "risks": [
+                "Não foi possível converter a resposta da LLM para JSON válido."
+            ],
+            "recommendation": "ATENCAO"
+        }
 
-    if "BLOQUEAR" in text:
-        recommendation = "BLOQUEAR"
-    elif "APROVAR" in text:
-        recommendation = "APROVAR"
+    summary = result.get("summary", "Resumo não informado.")
+    risks = result.get("risks", [])
+    recommendation = result.get("recommendation", "ATENCAO")
+
+    if recommendation not in ["APROVAR", "ATENCAO", "BLOQUEAR"]:
+        recommendation = "ATENCAO"
+
+    if not isinstance(risks, list):
+        risks = [str(risks)]
 
     return {
-        "summary": text,
-        "risks": [],
+        "summary": summary,
+        "risks": risks,
         "recommendation": recommendation
     }
 
