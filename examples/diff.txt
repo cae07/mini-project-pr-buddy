@@ -1,0 +1,5 @@
++ Added authentication endpoint
+
+- No tests added
+
++ Updated login page
