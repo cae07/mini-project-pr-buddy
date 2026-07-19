@@ -1,0 +1,304 @@
+# Prompts Utilizados no Projeto PR Buddy
+
+Este arquivo registra os principais prompts utilizados durante o planejamento, implementação, correção e documentação do agente **PR Buddy**.
+
+O objetivo deste registro é manter rastreabilidade do uso de IA no desenvolvimento do projeto, conforme solicitado na atividade avaliativa do módulo **IA para Desenvolvedores**.
+
+---
+
+## 1. Prompt para definição da ideia do projeto
+
+```text
+Tenho um mini-projeto avaliativo da disciplina IA para Desenvolvedores.
+Preciso criar um agente simples, funcional e demonstrável usando LangGraph.
+
+Crie uma ideia de projeto relacionada ao ciclo de desenvolvimento de software.
+A ideia deve atender aos seguintes requisitos:
+- ter um problema real;
+- definir uma entrada clara;
+- definir uma saída útil;
+- utilizar LangGraph;
+- utilizar estado compartilhado;
+- possuir pelo menos uma ferramenta integrada;
+- utilizar contexto ou memória durante a execução;
+- possuir validação básica;
+- ser simples o suficiente para implementar em pouco tempo.
+
+A proposta deve ser adequada para apresentação em até 2 slides.
+```
+
+---
+
+## 2. Prompt para criação da apresentação inicial
+
+```text
+Com base na ideia do agente PR Buddy, crie uma apresentação com no máximo 2 slides.
+
+A apresentação deve conter:
+- problema escolhido;
+- processo automatizado;
+- proposta do agente;
+- entrada esperada;
+- saída esperada;
+- visão geral do fluxo da solução.
+
+O projeto será um agente de IA para revisão de Pull Requests usando LangGraph.
+A entrada será um arquivo com o diff ou descrição do PR.
+A saída será um relatório técnico com resumo, riscos e recomendação final.
+```
+
+---
+
+## 3. Prompt para roteiro de apresentação
+
+```text
+Crie um roteiro de apresentação de até 2 minutos para o projeto PR Buddy.
+
+O roteiro deve ser dividido por slide apresentado.
+Para cada slide, informe as falas mais relevantes.
+
+Slide 1:
+- apresentar o nome do projeto;
+- explicar o problema;
+- apresentar a proposta do agente;
+- explicar entrada e saída esperadas.
+
+Slide 2:
+- explicar o fluxo com LangGraph;
+- mencionar estado compartilhado;
+- mencionar validação;
+- mencionar a ferramenta integrada;
+- explicar a saída final estruturada.
+
+Use linguagem simples, objetiva e adequada para apresentação acadêmica.
+```
+
+---
+
+## 4. Prompt para definição da estrutura do projeto
+
+```text
+Crie uma estrutura simples e profissional para um projeto Python chamado PR Buddy.
+
+O projeto deve implementar um agente com LangGraph.
+A estrutura deve usar a pasta src e seguir boas práticas básicas de organização.
+
+Inclua pastas para:
+- código-fonte do agente;
+- grafo do LangGraph;
+- ferramentas;
+- exemplos de entrada e saída;
+- documentação;
+- prompts utilizados.
+
+Também indique quais arquivos principais devem existir e qual a responsabilidade de cada um.
+```
+
+---
+
+## 5. Prompt para implementação inicial do agente
+
+```text
+Implemente um agente simples chamado PR Buddy usando LangGraph.
+
+O agente deve:
+- receber o caminho de um arquivo de entrada contendo um diff ou descrição de Pull Request;
+- ler o conteúdo do arquivo;
+- validar se o conteúdo não está vazio;
+- analisar o conteúdo com uma LLM;
+- identificar resumo, riscos e recomendação final;
+- gerar um relatório em Markdown;
+- retornar uma resposta estruturada.
+
+Use StateGraph do LangGraph.
+Crie nós separados para:
+1. leitura do arquivo;
+2. validação da entrada;
+3. análise do Pull Request;
+4. geração do relatório.
+
+Mantenha o projeto simples, funcional e adequado para apresentação acadêmica.
+```
+
+---
+
+## 6. Prompt para adaptação do projeto para Gemini
+
+```text
+Adapte o projeto PR Buddy para utilizar Gemini via LangChain.
+
+A aplicação deve usar:
+- GOOGLE_API_KEY no arquivo .env;
+- ChatGoogleGenerativeAI;
+- modelo gemini-2.5-flash;
+- python-dotenv para carregar variáveis de ambiente.
+
+Atualize os imports, requirements.txt, .env.example e o código de instanciação da LLM.
+
+Garanta que a chave de API não fique hardcoded no código-fonte.
+```
+
+---
+
+## 7. Prompt para correção de erro de chave da API
+
+```text
+Estou recebendo o seguinte erro ao executar o projeto PR Buddy:
+
+Value error, API key required for Gemini Developer API.
+Provide api_key parameter or set GOOGLE_API_KEY/GEMINI_API_KEY environment variable.
+
+Analise a causa raiz do problema considerando:
+- localização do arquivo .env;
+- carregamento com load_dotenv();
+- ordem dos imports;
+- uso correto de os.getenv();
+- instanciação de ChatGoogleGenerativeAI;
+- diferença entre passar "GEMINI_MODEL" como string literal e ler a variável de ambiente.
+
+Proponha a correção mínima e segura para o projeto.
+```
+
+---
+
+## 8. Prompt para melhorar a saída estruturada da LLM
+
+```text
+Melhore o prompt usado pelo agente PR Buddy para que a LLM retorne uma análise estruturada.
+
+A resposta deve conter:
+- summary: resumo da alteração;
+- risks: lista de riscos encontrados;
+- recommendation: APROVAR, ATENCAO ou BLOQUEAR.
+
+A saída deve ser fácil de processar pelo código Python.
+Se possível, retorne em JSON válido.
+
+Inclua critérios simples de análise:
+- ausência de testes;
+- alteração em autenticação ou segurança;
+- alteração em arquivos de configuração;
+- mudança sem documentação;
+- risco de impacto em funcionalidades existentes.
+```
+
+---
+
+## 9. Prompt para criação do README
+
+```text
+Crie um README.md completo para o projeto PR Buddy.
+
+O README deve conter:
+- nome do projeto;
+- descrição do problema;
+- objetivo do agente;
+- entrada esperada;
+- saída produzida;
+- explicação do fluxo com LangGraph;
+- ferramenta integrada;
+- estado e contexto utilizados;
+- validações básicas;
+- estrutura do projeto com pasta src;
+- tecnologias utilizadas;
+- instruções de instalação;
+- configuração do .env com GOOGLE_API_KEY;
+- exemplo de execução;
+- cuidados de segurança;
+- limitações da solução;
+- possíveis melhorias futuras;
+- checklist dos requisitos da atividade.
+
+A linguagem deve ser clara, objetiva e adequada para uma entrega acadêmica.
+```
+
+---
+
+## 10. Prompt para revisão final antes da entrega
+
+```text
+Revise o projeto PR Buddy antes da entrega final.
+
+Verifique se o projeto atende aos critérios da atividade:
+- README completo;
+- código-fonte organizado;
+- implementação com LangGraph;
+- uso de StateGraph;
+- estado compartilhado;
+- nós e conexões entre etapas;
+- ferramenta integrada real;
+- leitura de arquivo;
+- escrita de relatório;
+- uso de contexto;
+- validação básica;
+- .env.example sem chave real;
+- .gitignore protegendo o .env;
+- docs/prompts.md com os prompts utilizados;
+- exemplos de entrada e saída;
+- apresentação com até 2 slides.
+
+Aponte qualquer item faltante e sugira correções mínimas, sem reescrever a arquitetura do projeto.
+```
+
+---
+
+## 11. Prompt usado pelo agente para análise do Pull Request
+
+```text
+Você é um agente revisor de Pull Requests.
+
+Analise o conteúdo abaixo e identifique possíveis riscos para revisão de código.
+
+Critérios de análise:
+- ausência de testes;
+- alterações relacionadas a autenticação ou autorização;
+- mudanças em arquivos de configuração;
+- riscos de segurança;
+- falta de documentação;
+- impacto em funcionalidades existentes;
+- clareza geral das alterações.
+
+Retorne apenas um JSON válido no seguinte formato:
+
+{
+  "summary": "Resumo objetivo das alterações analisadas.",
+  "risks": [
+    "Risco ou ponto de atenção identificado."
+  ],
+  "recommendation": "APROVAR | ATENCAO | BLOQUEAR"
+}
+
+Regras:
+- Use APROVAR apenas quando não houver riscos relevantes.
+- Use ATENCAO quando houver pontos que precisam de revisão humana.
+- Use BLOQUEAR quando houver risco crítico, ausência grave de validação ou possível exposição de dados sensíveis.
+- Não inclua texto fora do JSON.
+
+Conteúdo para análise:
+{diff_content}
+```
+
+---
+
+## 12. Prompt para geração de relatório Markdown
+
+```text
+Com base no resultado da análise do Pull Request, gere um relatório técnico em Markdown.
+
+O relatório deve conter:
+- título;
+- resumo da análise;
+- lista de riscos;
+- recomendação final;
+- observação informando que a análise deve ser revisada por uma pessoa desenvolvedora.
+
+Mantenha linguagem objetiva e profissional.
+```
+
+---
+
+## Observação Final
+
+Os prompts acima foram utilizados como apoio para concepção, implementação, correção e documentação do projeto.
+
+A solução final foi adaptada, revisada e organizada para atender aos requisitos acadêmicos do mini-projeto avaliativo.
