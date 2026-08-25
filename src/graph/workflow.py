@@ -6,6 +6,8 @@ from graph.state import PRReviewState
 from graph.nodes import (
     load_diff,
     validate_input,
+    security_guard,
+    route_security,
     load_history,
     save_history,
     analyze_security,
@@ -33,6 +35,11 @@ def build_graph():
     graph.add_node(
         "validate",
         validate_input
+    )
+
+    graph.add_node(
+        "security_guard",
+        security_guard
     )
 
     graph.add_node(
@@ -91,7 +98,16 @@ def build_graph():
 
     graph.add_edge(
         "validate",
-        "load_history"
+        "security_guard"
+    )
+
+    graph.add_conditional_edges(
+        "security_guard",
+        route_security,
+        {
+            "safe": "load_history",
+            "blocked": "block"
+        }
     )
 
     #

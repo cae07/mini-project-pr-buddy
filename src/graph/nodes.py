@@ -1,4 +1,5 @@
 from pathlib import Path
+from tools.extract_json_tool import extract_json
 from tools.report_tool import write_report
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -13,6 +14,18 @@ import re
 import os
 from dotenv import load_dotenv
 
+MAX_DIFF_SIZE_BYTES = 200000
+PROMPT_INJECTION_PATTERNS = [
+    r"ignore\s+(previous|all)\s+instructions",
+    r"system\s+prompt",
+    r"reveal\s+prompt",
+    r"override\s+instructions",
+    r"bypass\s+security",
+    r"\bact\s+as\b",
+    r"developer\s+mode",
+    r"jailbreak",
+]
+
 load_dotenv()
 
 def load_diff(state):
@@ -25,13 +38,60 @@ def load_diff(state):
     }
 
 def validate_input(state):
+    diff_content = state.get("diff_content")
 
-    if not state["diff_content"].strip():
-        raise ValueError(
-            "Arquivo vazio"
-        )
+    if not isinstance(diff_content, str):
+        raise ValueError("Tipo de entrada inválido")
 
+    if not diff_content.strip():
+        raise ValueError("Arquivo vazio")
+
+    if len(diff_content.encode("utf-8")) > MAX_DIFF_SIZE_BYTES:
+        raise ValueError("Arquivo excede o tamanho máximo permitido")
+
+    if "\x00" in diff_content or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", diff_content):
+        raise ValueError("Conteúdo não textual ou inválido")
+
+    printable_ratio = (
+        sum(ch.isprintable() or ch in "\n\r\t" for ch in diff_content)
+        / max(len(diff_content), 1)
+    )
+    if printable_ratio < 0.85:
+        raise ValueError("Conteúdo não textual ou inválido")
+
+    state["diff_content"] = diff_content.strip()
     return state
+
+
+def security_guard(state):
+    diff_content = state.get("diff_content", "")
+    normalized = " ".join(diff_content.lower().split())
+    risks = []
+
+    for pattern in PROMPT_INJECTION_PATTERNS:
+        if re.search(pattern, normalized):
+            risks.append(f"Prompt injection detectado: padrão '{pattern}'")
+
+    if risks:
+        summary = "Bloqueado por conteúdo malicioso: instruções de prompt injection foram detectadas."
+        return {
+            "security_summary": summary,
+            "security_risks": risks,
+            "summary": summary,
+            "risks": risks,
+            "recommendation": "BLOQUEAR",
+            "flow_status": "blocked",
+        }
+
+    return {
+        "security_summary": "Validação de segurança concluída.",
+        "security_risks": [],
+        "flow_status": "safe",
+    }
+
+
+def route_security(state):
+    return "blocked" if state.get("flow_status") == "blocked" else "safe"
 
 llm = ChatGoogleGenerativeAI(
     model=os.getenv(
@@ -308,6 +368,45 @@ def load_history(state):
     return {
         "review_history": history
     }
+
+def approve_flow(state):
+    return {
+        "summary": state.get("summary", "Aprovação concluída."),
+        "risks": state.get("risks", []),
+        "recommendation": "APROVAR",
+        "flow_status": "approve"
+    }
+
+
+def attention_flow(state):
+    return {
+        "summary": state.get("summary", "Revisão com atenção necessária."),
+        "risks": state.get("risks", []),
+        "recommendation": "ATENCAO",
+        "flow_status": "attention"
+    }
+
+
+def block_flow(state):
+    risks = state.get("risks") or state.get("security_risks") or ["Conteúdo malicioso detectado."]
+    summary = "Bloqueado por conteúdo malicioso ou instruções de prompt injection."
+    return {
+        "summary": summary,
+        "risks": risks,
+        "recommendation": "BLOQUEAR",
+        "flow_status": "blocked"
+    }
+
+
+def route_recommendation(state):
+    recommendation = (state.get("recommendation") or "ATENCAO").upper()
+
+    if recommendation == "APROVAR":
+        return "approve"
+    if recommendation == "BLOQUEAR":
+        return "block"
+    return "attention"
+
 
 def save_history(state):
 
