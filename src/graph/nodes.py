@@ -2,6 +2,7 @@ from pathlib import Path
 from tools.extract_json_tool import extract_json
 from tools.report_tool import write_report
 from langchain_google_genai import ChatGoogleGenerativeAI
+from tools.logger import log_event, log_error, ensure_trace_id
 
 from tools.memory_tool import (
     load_review_history,
@@ -29,65 +30,92 @@ PROMPT_INJECTION_PATTERNS = [
 load_dotenv()
 
 def load_diff(state):
-    content = Path(
-        state["file_path"]
-    ).read_text(encoding="utf-8")
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        log_event(state, "workflow_started", "load_diff")
 
-    return {
-        "diff_content": content
-    }
+        content = Path(
+            state["file_path"]
+        ).read_text(encoding="utf-8")
+
+        log_event(state, "load_diff", "load_diff", file_path=state["file_path"], bytes_count=len(content.encode("utf-8")))
+
+        return {
+            "trace_id": state["trace_id"],
+            "diff_content": content
+        }
+    except Exception as exc:
+        log_error(state, "load_diff", exc)
+        raise
+
 
 def validate_input(state):
-    diff_content = state.get("diff_content")
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        log_event(state, "validate", "validate_input")
+        diff_content = state.get("diff_content")
 
-    if not isinstance(diff_content, str):
-        raise ValueError("Tipo de entrada inválido")
+        if not isinstance(diff_content, str):
+            raise ValueError("Tipo de entrada inválido")
 
-    if not diff_content.strip():
-        raise ValueError("Arquivo vazio")
+        if not diff_content.strip():
+            raise ValueError("Arquivo vazio")
 
-    if len(diff_content.encode("utf-8")) > MAX_DIFF_SIZE_BYTES:
-        raise ValueError("Arquivo excede o tamanho máximo permitido")
+        if len(diff_content.encode("utf-8")) > MAX_DIFF_SIZE_BYTES:
+            raise ValueError("Arquivo excede o tamanho máximo permitido")
 
-    if "\x00" in diff_content or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", diff_content):
-        raise ValueError("Conteúdo não textual ou inválido")
+        if "\x00" in diff_content or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", diff_content):
+            raise ValueError("Conteúdo não textual ou inválido")
 
-    printable_ratio = (
-        sum(ch.isprintable() or ch in "\n\r\t" for ch in diff_content)
-        / max(len(diff_content), 1)
-    )
-    if printable_ratio < 0.85:
-        raise ValueError("Conteúdo não textual ou inválido")
+        printable_ratio = (
+            sum(ch.isprintable() or ch in "\n\r\t" for ch in diff_content)
+            / max(len(diff_content), 1)
+        )
+        if printable_ratio < 0.85:
+            raise ValueError("Conteúdo não textual ou inválido")
 
-    state["diff_content"] = diff_content.strip()
-    return state
+        state["diff_content"] = diff_content.strip()
+        return state
+    except Exception as exc:
+        log_error(state, "validate_input", exc)
+        raise
 
 
 def security_guard(state):
-    diff_content = state.get("diff_content", "")
-    normalized = " ".join(diff_content.lower().split())
-    risks = []
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        log_event(state, "validate", "security_guard")
+        diff_content = state.get("diff_content", "")
+        normalized = " ".join(diff_content.lower().split())
+        risks = []
 
-    for pattern in PROMPT_INJECTION_PATTERNS:
-        if re.search(pattern, normalized):
-            risks.append(f"Prompt injection detectado: padrão '{pattern}'")
+        for pattern in PROMPT_INJECTION_PATTERNS:
+            if re.search(pattern, normalized):
+                risks.append(f"Prompt injection detectado: padrão '{pattern}'")
 
-    if risks:
-        summary = "Bloqueado por conteúdo malicioso: instruções de prompt injection foram detectadas."
-        return {
-            "security_summary": summary,
-            "security_risks": risks,
-            "summary": summary,
-            "risks": risks,
-            "recommendation": "BLOQUEAR",
-            "flow_status": "blocked",
+        if risks:
+            summary = "Bloqueado por conteúdo malicioso: instruções de prompt injection foram detectadas."
+            result = {
+                "security_summary": summary,
+                "security_risks": risks,
+                "summary": summary,
+                "risks": risks,
+                "recommendation": "BLOQUEAR",
+                "flow_status": "blocked",
+            }
+            log_event(state, "decision_made", "security_guard", recommendation="BLOQUEAR", flow_status="blocked", total_risks=len(risks))
+            return result
+
+        result = {
+            "security_summary": "Validação de segurança concluída.",
+            "security_risks": [],
+            "flow_status": "safe",
         }
-
-    return {
-        "security_summary": "Validação de segurança concluída.",
-        "security_risks": [],
-        "flow_status": "safe",
-    }
+        log_event(state, "validate", "security_guard", status="safe")
+        return result
+    except Exception as exc:
+        log_error(state, "security_guard", exc)
+        raise
 
 
 def route_security(state):
@@ -180,33 +208,40 @@ Conteúdo para análise:
     }
 
 def generate_report(state):
-
-    path = write_report(
-        state["summary"],
-        state["risks"],
-        state["recommendation"]
-    )
-
-    return {
-        "report_path": path
-    }
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        path = write_report(
+            state["summary"],
+            state["risks"],
+            state["recommendation"]
+        )
+        log_event(state, "report_generated", "generate_report", report_path=path)
+        return {
+            "report_path": path
+        }
+    except Exception as exc:
+        log_error(state, "generate_report", exc)
+        raise
 
 def analyze_security(state):
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        log_event(state, "analyze_security", "analyze_security")
 
-    diff_content = state["diff_content"]
+        diff_content = state["diff_content"]
 
-    history = state.get(
-        "review_history",
-        []
-    )
+        history = state.get(
+            "review_history",
+            []
+        )
 
-    history_context = json.dumps(
-        history,
-        ensure_ascii=False,
-        indent=2
-    )
+        history_context = json.dumps(
+            history,
+            ensure_ascii=False,
+            indent=2
+        )
 
-    prompt = f"""
+        prompt = f"""
 Você é um especialista em segurança.
 
 Histórico das últimas análises:
@@ -232,45 +267,51 @@ Diff:
 {diff_content}
 """
 
-    response = llm.invoke(prompt)
+        response = llm.invoke(prompt)
 
-    cleaned = extract_json(
-        response.content
-    )
-
-    result = json.loads(
-        cleaned
-    )
-
-    return {
-        "security_summary": result.get(
-            "summary",
-            ""
-        ),
-        "security_risks": result.get(
-            "risks",
-            []
+        cleaned = extract_json(
+            response.content
         )
-    }
+
+        result = json.loads(
+            cleaned
+        )
+
+        return {
+            "security_summary": result.get(
+                "summary",
+                ""
+            ),
+            "security_risks": result.get(
+                "risks",
+                []
+            )
+        }
+    except Exception as exc:
+        log_error(state, "analyze_security", exc)
+        raise
 
 # SUBSTITUIR analyze_quality POR ESTA VERSÃO
 
 def analyze_quality(state):
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        log_event(state, "analyze_quality", "analyze_quality")
 
-    diff_content = state["diff_content"]
+        diff_content = state["diff_content"]
 
-    history = state.get(
-        "review_history",
-        []
-    )
+        history = state.get(
+            "review_history",
+            []
+        )
 
-    history_context = json.dumps(
-        history,
-        ensure_ascii=False,
-        indent=2
-    )
+        history_context = json.dumps(
+            history,
+            ensure_ascii=False,
+            indent=2
+        )
 
-    prompt = f"""
+        prompt = f"""
 Você é um especialista em qualidade de software.
 
 Histórico das últimas análises:
@@ -295,35 +336,41 @@ Diff:
 {diff_content}
 """
 
-    response = llm.invoke(prompt)
+        response = llm.invoke(prompt)
 
-    cleaned = extract_json(
-        response.content
-    )
-
-    result = json.loads(
-        cleaned
-    )
-
-    return {
-        "quality_summary": result.get(
-            "summary",
-            ""
-        ),
-        "quality_risks": result.get(
-            "risks",
-            []
+        cleaned = extract_json(
+            response.content
         )
-    }
+
+        result = json.loads(
+            cleaned
+        )
+
+        return {
+            "quality_summary": result.get(
+                "summary",
+                ""
+            ),
+            "quality_risks": result.get(
+                "risks",
+                []
+            )
+        }
+    except Exception as exc:
+        log_error(state, "analyze_quality", exc)
+        raise
 
 def merge_analysis(state):
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        log_event(state, "merge_analysis", "merge_analysis")
 
-    risks = (
-        state["security_risks"]
-        + state["quality_risks"]
-    )
+        risks = (
+            state["security_risks"]
+            + state["quality_risks"]
+        )
 
-    summary = f"""
+        summary = f"""
 Security:
 {state['security_summary']}
 
@@ -331,89 +378,138 @@ Quality:
 {state['quality_summary']}
 """.strip()
 
-    recommendation = "APROVAR"
+        recommendation = "APROVAR"
 
-    if risks:
-        recommendation = "ATENCAO"
+        if risks:
+            recommendation = "ATENCAO"
 
-    security_text = (
-        " ".join(state["security_risks"])
-    ).lower()
+        security_text = (
+            " ".join(state["security_risks"])
+        ).lower()
 
-    critical_terms = [
-        "credencial",
-        "token",
-        "senha",
-        "autorização",
-        "authentication",
-        "security"
-    ]
+        critical_terms = [
+            "credencial",
+            "token",
+            "senha",
+            "autorização",
+            "authentication",
+            "security"
+        ]
 
-    if any(
-        term in security_text
-        for term in critical_terms
-    ):
-        recommendation = "BLOQUEAR"
+        if any(
+            term in security_text
+            for term in critical_terms
+        ):
+            recommendation = "BLOQUEAR"
 
-    return {
-        "summary": summary,
-        "risks": risks,
-        "recommendation": recommendation
-    }
+        result = {
+            "summary": summary,
+            "risks": risks,
+            "recommendation": recommendation
+        }
+        log_event(state, "decision_made", "merge_analysis", recommendation=recommendation, flow_status="decision", total_risks=len(risks))
+        return result
+    except Exception as exc:
+        log_error(state, "merge_analysis", exc)
+        raise
+
 
 def load_history(state):
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        log_event(state, "load_history", "load_history")
 
-    history = load_review_history()
+        history = load_review_history()
 
-    return {
-        "review_history": history
-    }
+        return {
+            "review_history": history
+        }
+    except Exception as exc:
+        log_error(state, "load_history", exc)
+        raise
+
 
 def approve_flow(state):
-    return {
-        "summary": state.get("summary", "Aprovação concluída."),
-        "risks": state.get("risks", []),
-        "recommendation": "APROVAR",
-        "flow_status": "approve"
-    }
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        result = {
+            "summary": state.get("summary", "Aprovação concluída."),
+            "risks": state.get("risks", []),
+            "recommendation": "APROVAR",
+            "flow_status": "approve"
+        }
+        log_event(state, "decision_made", "approve_flow", recommendation="APROVAR", flow_status="approve", total_risks=len(result["risks"]))
+        return result
+    except Exception as exc:
+        log_error(state, "approve_flow", exc)
+        raise
 
 
 def attention_flow(state):
-    return {
-        "summary": state.get("summary", "Revisão com atenção necessária."),
-        "risks": state.get("risks", []),
-        "recommendation": "ATENCAO",
-        "flow_status": "attention"
-    }
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        result = {
+            "summary": state.get("summary", "Revisão com atenção necessária."),
+            "risks": state.get("risks", []),
+            "recommendation": "ATENCAO",
+            "flow_status": "attention"
+        }
+        log_event(state, "decision_made", "attention_flow", recommendation="ATENCAO", flow_status="attention", total_risks=len(result["risks"]))
+        return result
+    except Exception as exc:
+        log_error(state, "attention_flow", exc)
+        raise
 
 
 def block_flow(state):
-    risks = state.get("risks") or state.get("security_risks") or ["Conteúdo malicioso detectado."]
-    summary = "Bloqueado por conteúdo malicioso ou instruções de prompt injection."
-    return {
-        "summary": summary,
-        "risks": risks,
-        "recommendation": "BLOQUEAR",
-        "flow_status": "blocked"
-    }
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        risks = state.get("risks") or state.get("security_risks") or ["Conteúdo malicioso detectado."]
+        summary = "Bloqueado por conteúdo malicioso ou instruções de prompt injection."
+        result = {
+            "summary": summary,
+            "risks": risks,
+            "recommendation": "BLOQUEAR",
+            "flow_status": "blocked"
+        }
+        log_event(state, "decision_made", "block_flow", recommendation="BLOQUEAR", flow_status="blocked", total_risks=len(risks))
+        return result
+    except Exception as exc:
+        log_error(state, "block_flow", exc)
+        raise
 
 
 def route_recommendation(state):
-    recommendation = (state.get("recommendation") or "ATENCAO").upper()
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        recommendation = (state.get("recommendation") or "ATENCAO").upper()
 
-    if recommendation == "APROVAR":
-        return "approve"
-    if recommendation == "BLOQUEAR":
-        return "block"
-    return "attention"
+        if recommendation == "APROVAR":
+            log_event(state, "decision_made", "route_recommendation", recommendation="APROVAR", flow_status="approve", total_risks=len(state.get("risks", [])))
+            return "approve"
+        if recommendation == "BLOQUEAR":
+            log_event(state, "decision_made", "route_recommendation", recommendation="BLOQUEAR", flow_status="blocked", total_risks=len(state.get("risks", [])))
+            return "block"
+        log_event(state, "decision_made", "route_recommendation", recommendation="ATENCAO", flow_status="attention", total_risks=len(state.get("risks", [])))
+        return "attention"
+    except Exception as exc:
+        log_error(state, "route_recommendation", exc)
+        raise
 
 
 def save_history(state):
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        log_event(state, "history_saved", "save_history", recommendation=state["recommendation"], total_risks=len(state.get("risks", [])))
 
-    save_review_history(
-        summary=state["summary"],
-        risks=state["risks"],
-        recommendation=state["recommendation"]
-    )
+        save_review_history(
+            summary=state["summary"],
+            risks=state["risks"],
+            recommendation=state["recommendation"]
+        )
 
-    return state
+        log_event(state, "workflow_finished", "save_history", recommendation=state["recommendation"], flow_status=state.get("flow_status", "unknown"))
+        return state
+    except Exception as exc:
+        log_error(state, "save_history", exc)
+        raise

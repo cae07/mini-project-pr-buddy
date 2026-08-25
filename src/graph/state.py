@@ -3,6 +3,7 @@ from typing import TypedDict
 
 class PRReviewState(TypedDict):
 
+    trace_id: str
     file_path: str
     diff_content: str
 
