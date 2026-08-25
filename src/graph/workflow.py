@@ -6,9 +6,16 @@ from graph.state import PRReviewState
 from graph.nodes import (
     load_diff,
     validate_input,
-    analyze_pr,
+    analyze_security,
+    analyze_quality,
+    merge_analysis,
+    approve_flow,
+    attention_flow,
+    block_flow,
+    route_recommendation,
     generate_report
 )
+
 
 def build_graph():
 
@@ -27,8 +34,33 @@ def build_graph():
     )
 
     graph.add_node(
-        "analyze",
-        analyze_pr
+        "analyze_security",
+        analyze_security
+    )
+
+    graph.add_node(
+        "analyze_quality",
+        analyze_quality
+    )
+
+    graph.add_node(
+        "merge_analysis",
+        merge_analysis
+    )
+
+    graph.add_node(
+        "approve",
+        approve_flow
+    )
+
+    graph.add_node(
+        "attention",
+        attention_flow
+    )
+
+    graph.add_node(
+        "block",
+        block_flow
     )
 
     graph.add_node(
@@ -45,13 +77,57 @@ def build_graph():
         "validate"
     )
 
+    #
+    # Paralelização
+    #
     graph.add_edge(
         "validate",
-        "analyze"
+        "analyze_security"
     )
 
     graph.add_edge(
-        "analyze",
+        "validate",
+        "analyze_quality"
+    )
+
+    #
+    # Convergência
+    #
+    graph.add_edge(
+        "analyze_security",
+        "merge_analysis"
+    )
+
+    graph.add_edge(
+        "analyze_quality",
+        "merge_analysis"
+    )
+
+    #
+    # Ramificação condicional
+    #
+    graph.add_conditional_edges(
+        "merge_analysis",
+        route_recommendation,
+        {
+            "approve": "approve",
+            "attention": "attention",
+            "block": "block"
+        }
+    )
+
+    graph.add_edge(
+        "approve",
+        "generate_report"
+    )
+
+    graph.add_edge(
+        "attention",
+        "generate_report"
+    )
+
+    graph.add_edge(
+        "block",
         "generate_report"
     )
 

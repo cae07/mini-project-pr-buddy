@@ -125,3 +125,115 @@ def generate_report(state):
     return {
         "report_path": path
     }
+
+def analyze_security(state):
+    diff_content = state["diff_content"]
+
+    prompt = f"""
+Analise exclusivamente:
+
+- autenticação
+- autorização
+- exposição de dados
+- credenciais
+- arquivos de configuração
+- riscos de segurança
+
+Retorne JSON:
+
+{{
+  "summary": "...",
+  "risks": []
+}}
+
+Diff:
+{diff_content}
+"""
+
+    response = llm.invoke(prompt)
+    result = json.loads(
+        extract_json(response.content)
+    )
+
+    return {
+        "security_summary": result["summary"],
+        "security_risks": result["risks"]
+    }
+
+def analyze_quality(state):
+    diff_content = state["diff_content"]
+
+    prompt = f"""
+Analise exclusivamente:
+
+- testes
+- documentação
+- impacto funcional
+- clareza
+- qualidade geral
+
+Retorne JSON:
+
+{{
+  "summary": "...",
+  "risks": []
+}}
+
+Diff:
+{diff_content}
+"""
+
+    response = llm.invoke(prompt)
+    result = json.loads(
+        extract_json(response.content)
+    )
+
+    return {
+        "quality_summary": result["summary"],
+        "quality_risks": result["risks"]
+    }
+
+def merge_analysis(state):
+
+    risks = (
+        state["security_risks"]
+        + state["quality_risks"]
+    )
+
+    summary = f"""
+Security:
+{state['security_summary']}
+
+Quality:
+{state['quality_summary']}
+""".strip()
+
+    recommendation = "APROVAR"
+
+    if risks:
+        recommendation = "ATENCAO"
+
+    security_text = (
+        " ".join(state["security_risks"])
+    ).lower()
+
+    critical_terms = [
+        "credencial",
+        "token",
+        "senha",
+        "autorização",
+        "authentication",
+        "security"
+    ]
+
+    if any(
+        term in security_text
+        for term in critical_terms
+    ):
+        recommendation = "BLOQUEAR"
+
+    return {
+        "summary": summary,
+        "risks": risks,
+        "recommendation": recommendation
+    }
