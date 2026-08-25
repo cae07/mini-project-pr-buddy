@@ -297,6 +297,147 @@ Mantenha linguagem objetiva e profissional.
 
 ---
 
+## 13 - Prompt para ramificação condicional
+
+Objetivo: implementar a ramificação condicional do workflow LangGraph para atender ao requisito de roteamento baseado no resultado da análise.
+
+Contexto atual:
+- O fluxo possui: load_diff → validate → analyze → generate_report → END.
+- O node analyze_pr produz recommendation com os valores:
+  - APROVAR
+  - ATENCAO
+  - BLOQUEAR
+
+Tarefas:
+1. Criar os nodes:
+   - approve_flow
+   - attention_flow
+   - block_flow
+
+2. Criar a função:
+   - route_recommendation(state)
+
+3. Implementar o roteamento:
+   - APROVAR → approve
+   - ATENCAO → attention
+   - BLOQUEAR → block
+
+4. Atualizar o state adicionando:
+   - flow_status: str
+
+5. Atualizar o workflow:
+   - Registrar os novos nodes.
+   - Remover a edge direta analyze → generate_report.
+   - Utilizar add_conditional_edges após analyze.
+   - Conectar approve → generate_report.
+   - Conectar attention → generate_report.
+   - Conectar block → generate_report.
+
+Regras:
+- Não alterar comportamento existente da análise.
+- Não alterar formato do relatório.
+- Não implementar paralelização.
+- Não implementar memória.
+- Não implementar observabilidade.
+- Não implementar outros TODOs.
+- Aplicar apenas as alterações necessárias para concluir a ramificação condicional.
+
+Ao finalizar:
+- Exibir os arquivos alterados.
+- Explicar brevemente o fluxo final.
+- Não executar nenhuma outra melhoria fora do escopo.
+
+---
+
+## 14 - Prompt para paralelização
+
+Objetivo: implementar paralelização no LangGraph separando a análise em dois fluxos independentes e consolidando os resultados antes da decisão final.
+
+Contexto atual:
+- Existe um node analyze_pr que executa toda a análise.
+- Já existe roteamento condicional baseado em recommendation.
+- O relatório continua sendo gerado por generate_report.
+
+Tarefas:
+
+1. Criar node analyze_security
+   Responsável apenas por:
+   - autenticação/autorização
+   - riscos de segurança
+   - arquivos de configuração
+   - exposição de dados
+   - credenciais
+
+2. Criar node analyze_quality
+   Responsável apenas por:
+   - ausência de testes
+   - impacto em funcionalidades existentes
+   - documentação
+   - qualidade das alterações
+   - clareza das mudanças
+
+3. Atualizar o State:
+   Adicionar campos separados para armazenar o resultado de cada análise.
+
+Exemplo:
+- security_summary
+- security_risks
+- quality_summary
+- quality_risks
+
+4. Criar node merge_analysis
+   Responsável por:
+   - consolidar os resultados das duas análises
+   - montar summary final
+   - unir risks
+   - definir recommendation final
+
+Regra da recommendation:
+- BLOQUEAR se houver risco crítico de segurança
+- ATENCAO se existirem riscos relevantes
+- APROVAR se não existirem riscos relevantes
+
+5. Atualizar o workflow LangGraph
+
+Fluxo desejado:
+
+load_diff
+    |
+validate
+    |
++----------------------+
+|                      |
+analyze_security   analyze_quality
+|                      |
++----------+-----------+
+           |
+     merge_analysis
+           |
+route_recommendation
+           |
+approve / attention / block
+           |
+generate_report
+           |
+END
+
+Regras:
+- Utilizar paralelização nativa do LangGraph.
+- Não alterar o comportamento de generate_report.
+- Não alterar o formato do relatório.
+- Não implementar memória.
+- Não implementar observabilidade.
+- Não implementar retry/fallback.
+- Não implementar outros TODOs.
+- Aplicar apenas as mudanças necessárias para suportar a paralelização e consolidação das análises.
+
+Ao finalizar:
+- Listar todos os arquivos alterados.
+- Explicar como a paralelização foi implementada.
+- Explicar como merge_analysis consolida os resultados.
+- Confirmar que o fluxo continua compatível com a ramificação condicional implementada anteriormente.
+---
+
 ## Observação Final
 
 Os prompts acima foram utilizados como apoio para concepção, implementação, correção e documentação do projeto.
