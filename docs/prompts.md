@@ -618,6 +618,71 @@ Ao finalizar:
 
 ---
 
+## 17 - Observabilidade
+
+Objetivo: implementar observabilidade com o menor número possível de mudanças e tokens.
+
+Tarefas:
+
+1. Criar módulo logger
+   - logger estruturado em JSON
+   - gravação em logs/app.log
+
+2. Adicionar trace_id
+   - gerar UUID único por execução
+   - armazenar no state
+   - reutilizar em todos os logs
+
+3. Registrar eventos principais
+   - workflow_started
+   - load_diff
+   - validate
+   - load_history
+   - analyze_security
+   - analyze_quality
+   - merge_analysis
+   - decision_made
+   - report_generated
+   - history_saved
+   - workflow_finished
+
+4. Registrar erros
+   - node
+   - erro
+   - trace_id
+
+5. Registrar decisões
+   - recommendation
+   - flow_status
+   - total_risks
+
+Formato esperado:
+
+{
+  "timestamp": "...",
+  "trace_id": "...",
+  "event": "...",
+  "node": "...",
+  "details": {}
+}
+
+Regras:
+- Não utilizar bibliotecas externas de observabilidade.
+- Utilizar apenas logging + json.
+- Não implementar métricas.
+- Não implementar dashboard.
+- Não implementar tracing distribuído.
+- Não alterar regras de negócio.
+- Não alterar memória persistente.
+- Não alterar paralelização.
+- Não alterar formato do relatório.
+- Implementar apenas o necessário para atender observabilidade.
+
+Ao finalizar:
+- Pare
+
+---
+
 ## Observação Final
 
 Os prompts acima foram utilizados como apoio para concepção, implementação, correção e documentação do projeto.
