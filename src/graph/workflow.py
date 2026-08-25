@@ -7,8 +7,13 @@ from graph.nodes import (
     load_diff,
     validate_input,
     analyze_pr,
-    generate_report
+    generate_report,
+    approve_flow,
+    attention_flow,
+    block_flow,
+    route_recommendation
 )
+
 
 def build_graph():
 
@@ -36,6 +41,21 @@ def build_graph():
         generate_report
     )
 
+    graph.add_node(
+        "approve",
+        approve_flow
+    )
+
+    graph.add_node(
+        "attention",
+        attention_flow
+    )
+
+    graph.add_node(
+        "block",
+        block_flow
+    )
+
     graph.set_entry_point(
         "load_diff"
     )
@@ -50,8 +70,28 @@ def build_graph():
         "analyze"
     )
 
-    graph.add_edge(
+    graph.add_conditional_edges(
         "analyze",
+        route_recommendation,
+        {
+            "approve": "approve",
+            "attention": "attention",
+            "block": "block"
+        }
+    )
+
+    graph.add_edge(
+        "approve",
+        "generate_report"
+    )
+
+    graph.add_edge(
+        "attention",
+        "generate_report"
+    )
+
+    graph.add_edge(
+        "block",
         "generate_report"
     )
 

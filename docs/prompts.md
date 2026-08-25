@@ -297,6 +297,57 @@ Mantenha linguagem objetiva e profissional.
 
 ---
 
+## 13. Prompt para implementar ramificação condicional
+Objetivo: implementar a ramificação condicional do workflow LangGraph para atender ao requisito de roteamento baseado no resultado da análise.
+
+Contexto atual:
+- O fluxo possui: load_diff → validate → analyze → generate_report → END.
+- O node analyze_pr produz recommendation com os valores:
+  - APROVAR
+  - ATENCAO
+  - BLOQUEAR
+
+Tarefas:
+1. Criar os nodes:
+   - approve_flow
+   - attention_flow
+   - block_flow
+
+2. Criar a função:
+   - route_recommendation(state)
+
+3. Implementar o roteamento:
+   - APROVAR → approve
+   - ATENCAO → attention
+   - BLOQUEAR → block
+
+4. Atualizar o state adicionando:
+   - flow_status: str
+
+5. Atualizar o workflow:
+   - Registrar os novos nodes.
+   - Remover a edge direta analyze → generate_report.
+   - Utilizar add_conditional_edges após analyze.
+   - Conectar approve → generate_report.
+   - Conectar attention → generate_report.
+   - Conectar block → generate_report.
+
+Regras:
+- Não alterar comportamento existente da análise.
+- Não alterar formato do relatório.
+- Não implementar paralelização.
+- Não implementar memória.
+- Não implementar observabilidade.
+- Não implementar outros TODOs.
+- Aplicar apenas as alterações necessárias para concluir a ramificação condicional.
+
+Ao finalizar:
+- Exibir os arquivos alterados.
+- Explicar brevemente o fluxo final.
+- Não executar nenhuma outra melhoria fora do escopo.
+
+---
+
 ## Observação Final
 
 Os prompts acima foram utilizados como apoio para concepção, implementação, correção e documentação do projeto.

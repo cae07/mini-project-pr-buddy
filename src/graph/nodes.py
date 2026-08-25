@@ -125,3 +125,32 @@ def generate_report(state):
     return {
         "report_path": path
     }
+
+def approve_flow(state):
+    return {
+        "flow_status": "approved"
+    }
+
+
+def attention_flow(state):
+    return {
+        "flow_status": "attention"
+    }
+
+
+def block_flow(state):
+    return {
+        "flow_status": "blocked"
+    }
+
+
+def route_recommendation(state):
+    recommendation = state["recommendation"]
+
+    if recommendation == "APROVAR":
+        return "approve"
+
+    if recommendation == "BLOQUEAR":
+        return "block"
+
+    return "attention"
