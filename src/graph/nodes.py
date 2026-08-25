@@ -126,31 +126,114 @@ def generate_report(state):
         "report_path": path
     }
 
-def approve_flow(state):
+def analyze_security(state):
+    diff_content = state["diff_content"]
+
+    prompt = f"""
+Analise exclusivamente:
+
+- autenticação
+- autorização
+- exposição de dados
+- credenciais
+- arquivos de configuração
+- riscos de segurança
+
+Retorne JSON:
+
+{{
+  "summary": "...",
+  "risks": []
+}}
+
+Diff:
+{diff_content}
+"""
+
+    response = llm.invoke(prompt)
+    result = json.loads(
+        extract_json(response.content)
+    )
+
     return {
-        "flow_status": "approved"
+        "security_summary": result["summary"],
+        "security_risks": result["risks"]
     }
 
+def analyze_quality(state):
+    diff_content = state["diff_content"]
 
-def attention_flow(state):
+    prompt = f"""
+Analise exclusivamente:
+
+- testes
+- documentação
+- impacto funcional
+- clareza
+- qualidade geral
+
+Retorne JSON:
+
+{{
+  "summary": "...",
+  "risks": []
+}}
+
+Diff:
+{diff_content}
+"""
+
+    response = llm.invoke(prompt)
+    result = json.loads(
+        extract_json(response.content)
+    )
+
     return {
-        "flow_status": "attention"
+        "quality_summary": result["summary"],
+        "quality_risks": result["risks"]
     }
 
+def merge_analysis(state):
 
-def block_flow(state):
+    risks = (
+        state["security_risks"]
+        + state["quality_risks"]
+    )
+
+    summary = f"""
+Security:
+{state['security_summary']}
+
+Quality:
+{state['quality_summary']}
+""".strip()
+
+    recommendation = "APROVAR"
+
+    if risks:
+        recommendation = "ATENCAO"
+
+    security_text = (
+        " ".join(state["security_risks"])
+    ).lower()
+
+    critical_terms = [
+        "credencial",
+        "token",
+        "senha",
+        "autorização",
+        "authentication",
+        "security"
+    ]
+
+    if any(
+        term in security_text
+        for term in critical_terms
+    ):
+        recommendation = "BLOQUEAR"
+
     return {
-        "flow_status": "blocked"
+        "summary": summary,
+        "risks": risks,
+        "recommendation": recommendation
     }
-
-
-def route_recommendation(state):
-    recommendation = state["recommendation"]
-
-    if recommendation == "APROVAR":
-        return "approve"
-
-    if recommendation == "BLOQUEAR":
-        return "block"
-
-    return "attention"
