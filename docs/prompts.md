@@ -438,6 +438,88 @@ Ao finalizar:
 - Confirmar que o fluxo continua compatível com a ramificação condicional implementada anteriormente.
 ---
 
+## 15 - Prompt para Memoria persistente
+
+Objetivo: implementar memória persistente para armazenar e reutilizar histórico de reviews realizados pelo sistema.
+
+Contexto atual:
+- O workflow já possui paralelização e ramificação condicional.
+- O resultado final contém:
+  - summary
+  - risks
+  - recommendation
+- O relatório continua sendo gerado por generate_report.
+
+Tarefas:
+
+1. Criar persistência de histórico
+   - Criar diretório data/
+   - Criar arquivo data/reviews.json
+   - Armazenar histórico de execuções
+
+2. Criar node load_review_history
+   Responsável por:
+   - Ler os reviews anteriores
+   - Recuperar os últimos registros
+   - Disponibilizar os dados no state
+
+3. Criar node save_review_history
+   Responsável por:
+   - Salvar summary
+   - Salvar risks
+   - Salvar recommendation
+   - Salvar timestamp da execução
+
+4. Atualizar o State
+   Adicionar:
+   - review_history
+
+5. Atualizar o workflow
+   Novo fluxo:
+
+   load_diff
+       |
+   validate
+       |
+   load_review_history
+       |
+   analyze_security
+   analyze_quality
+       |
+   merge_analysis
+       |
+   route_recommendation
+       |
+   approve / attention / block
+       |
+   generate_report
+       |
+   save_review_history
+       |
+   END
+
+6. Utilizar o histórico na análise
+   - Incluir no prompt contexto resumido dos reviews anteriores
+   - Limitar quantidade de histórico enviada ao modelo
+   - Evitar crescimento ilimitado do contexto
+
+Regras:
+- Utilizar apenas arquivo JSON local.
+- Não implementar banco de dados.
+- Não implementar RAG.
+- Não implementar embeddings.
+- Não alterar o formato atual do relatório.
+- Não alterar a lógica da recomendação.
+- Não implementar outros TODOs.
+
+Ao finalizar:
+- Listar os arquivos alterados.
+- Mostrar a estrutura do JSON persistido.
+- Explicar como o histórico é carregado e salvo.
+- Confirmar que a solução atende ao requisito de memória persistente do projeto.
+
+---
+
 ## Observação Final
 
 Os prompts acima foram utilizados como apoio para concepção, implementação, correção e documentação do projeto.

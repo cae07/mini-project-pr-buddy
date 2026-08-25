@@ -1,8 +1,12 @@
 from typing import TypedDict
 
+
 class PRReviewState(TypedDict):
+
     file_path: str
     diff_content: str
+
+    review_history: list
 
     security_summary: str
     security_risks: list[str]

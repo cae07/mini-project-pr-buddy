@@ -2,6 +2,11 @@ from pathlib import Path
 from tools.report_tool import write_report
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+from tools.memory_tool import (
+    load_review_history,
+    save_review_history
+)
+
 import json
 import re
 
@@ -127,9 +132,26 @@ def generate_report(state):
     }
 
 def analyze_security(state):
+
     diff_content = state["diff_content"]
 
+    history = state.get(
+        "review_history",
+        []
+    )
+
+    history_context = json.dumps(
+        history,
+        ensure_ascii=False,
+        indent=2
+    )
+
     prompt = f"""
+Você é um especialista em segurança.
+
+Histórico das últimas análises:
+{history_context}
+
 Analise exclusivamente:
 
 - autenticação
@@ -139,7 +161,7 @@ Analise exclusivamente:
 - arquivos de configuração
 - riscos de segurança
 
-Retorne JSON:
+Retorne apenas JSON:
 
 {{
   "summary": "...",
@@ -151,19 +173,49 @@ Diff:
 """
 
     response = llm.invoke(prompt)
+
+    cleaned = extract_json(
+        response.content
+    )
+
     result = json.loads(
-        extract_json(response.content)
+        cleaned
     )
 
     return {
-        "security_summary": result["summary"],
-        "security_risks": result["risks"]
+        "security_summary": result.get(
+            "summary",
+            ""
+        ),
+        "security_risks": result.get(
+            "risks",
+            []
+        )
     }
 
+# SUBSTITUIR analyze_quality POR ESTA VERSÃO
+
 def analyze_quality(state):
+
     diff_content = state["diff_content"]
 
+    history = state.get(
+        "review_history",
+        []
+    )
+
+    history_context = json.dumps(
+        history,
+        ensure_ascii=False,
+        indent=2
+    )
+
     prompt = f"""
+Você é um especialista em qualidade de software.
+
+Histórico das últimas análises:
+{history_context}
+
 Analise exclusivamente:
 
 - testes
@@ -172,7 +224,7 @@ Analise exclusivamente:
 - clareza
 - qualidade geral
 
-Retorne JSON:
+Retorne apenas JSON:
 
 {{
   "summary": "...",
@@ -184,13 +236,24 @@ Diff:
 """
 
     response = llm.invoke(prompt)
+
+    cleaned = extract_json(
+        response.content
+    )
+
     result = json.loads(
-        extract_json(response.content)
+        cleaned
     )
 
     return {
-        "quality_summary": result["summary"],
-        "quality_risks": result["risks"]
+        "quality_summary": result.get(
+            "summary",
+            ""
+        ),
+        "quality_risks": result.get(
+            "risks",
+            []
+        )
     }
 
 def merge_analysis(state):
@@ -237,3 +300,21 @@ Quality:
         "risks": risks,
         "recommendation": recommendation
     }
+
+def load_history(state):
+
+    history = load_review_history()
+
+    return {
+        "review_history": history
+    }
+
+def save_history(state):
+
+    save_review_history(
+        summary=state["summary"],
+        risks=state["risks"],
+        recommendation=state["recommendation"]
+    )
+
+    return state

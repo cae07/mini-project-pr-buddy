@@ -1,0 +1,18 @@
+[
+  {
+    "timestamp": "2026-08-25T20:15:00",
+    "summary": "Alteração em autenticação JWT",
+    "risks": [
+      "Ausência de testes"
+    ],
+    "recommendation": "ATENCAO"
+  },
+  {
+    "timestamp": "2026-08-25T20:18:00",
+    "summary": "Mudança em configuração crítica",
+    "risks": [
+      "Exposição de credencial"
+    ],
+    "recommendation": "BLOQUEAR"
+  }
+]
