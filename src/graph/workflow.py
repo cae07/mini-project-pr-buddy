@@ -6,6 +6,8 @@ from graph.state import PRReviewState
 from graph.nodes import (
     load_diff,
     validate_input,
+    load_history,
+    save_history,
     analyze_security,
     analyze_quality,
     merge_analysis,
@@ -31,6 +33,11 @@ def build_graph():
     graph.add_node(
         "validate",
         validate_input
+    )
+
+    graph.add_node(
+        "load_history",
+        load_history
     )
 
     graph.add_node(
@@ -68,6 +75,11 @@ def build_graph():
         generate_report
     )
 
+    graph.add_node(
+        "save_history",
+        save_history
+    )
+
     graph.set_entry_point(
         "load_diff"
     )
@@ -77,22 +89,29 @@ def build_graph():
         "validate"
     )
 
+    graph.add_edge(
+        "validate",
+        "load_history"
+    )
+
     #
     # Paralelização
     #
+
     graph.add_edge(
-        "validate",
+        "load_history",
         "analyze_security"
     )
 
     graph.add_edge(
-        "validate",
+        "load_history",
         "analyze_quality"
     )
 
     #
     # Convergência
     #
+
     graph.add_edge(
         "analyze_security",
         "merge_analysis"
@@ -106,6 +125,7 @@ def build_graph():
     #
     # Ramificação condicional
     #
+
     graph.add_conditional_edges(
         "merge_analysis",
         route_recommendation,
@@ -133,6 +153,11 @@ def build_graph():
 
     graph.add_edge(
         "generate_report",
+        "save_history"
+    )
+
+    graph.add_edge(
+        "save_history",
         END
     )
 
