@@ -1,3 +1,6 @@
+import re
+
+
 def extract_json(raw_content):
     cleaned_content = re.sub(
         r"^```json\s*|\s*```$",
