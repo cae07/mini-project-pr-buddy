@@ -14,5 +14,6 @@ class PRReviewState(TypedDict):
     risks: list[str]
 
     recommendation: str
+    flow_status: str
 
     report_path: str
