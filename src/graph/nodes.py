@@ -16,6 +16,8 @@ import os
 from dotenv import load_dotenv
 
 MAX_DIFF_SIZE_BYTES = 200000
+LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "20"))
+LLM_MAX_ATTEMPTS = max(1, int(os.getenv("LLM_MAX_ATTEMPTS", "3")))
 PROMPT_INJECTION_PATTERNS = [
     r"ignore\s+(previous|all)\s+instructions",
     r"system\s+prompt",
@@ -129,8 +131,46 @@ llm = ChatGoogleGenerativeAI(
     google_api_key=os.getenv(
         "GOOGLE_API_KEY"
     ),
-    temperature=0
+    temperature=0,
+    request_timeout=LLM_TIMEOUT_SECONDS
 )
+
+
+def invoke_llm_with_resilience(state, node, prompt):
+    last_error = None
+
+    for attempt in range(1, LLM_MAX_ATTEMPTS + 1):
+        try:
+            return llm.invoke(prompt, config={"timeout": LLM_TIMEOUT_SECONDS})
+        except Exception as exc:
+            last_error = exc
+            fallback_activated = attempt >= LLM_MAX_ATTEMPTS
+            log_event(
+                state,
+                "llm_failure",
+                node,
+                attempt=attempt,
+                error=str(exc),
+                fallback_activated=fallback_activated
+            )
+            if attempt >= LLM_MAX_ATTEMPTS:
+                break
+
+    fallback = {
+        "summary": "Falha na análise",
+        "risks": ["LLM indisponível"],
+        "recommendation": "ATENCAO"
+    }
+    log_event(
+        state,
+        "llm_fallback",
+        node,
+        attempt=LLM_MAX_ATTEMPTS,
+        error=str(last_error) if last_error else "LLM indisponível",
+        fallback_activated=True
+    )
+    return fallback
+
 
 def analyze_pr(state):
     diff_content = state["diff_content"]
@@ -267,7 +307,13 @@ Diff:
 {diff_content}
 """
 
-        response = llm.invoke(prompt)
+        response = invoke_llm_with_resilience(state, "analyze_security", prompt)
+
+        if isinstance(response, dict):
+            return {
+                "security_summary": response.get("summary", "Falha na análise"),
+                "security_risks": response.get("risks", ["LLM indisponível"])
+            }
 
         cleaned = extract_json(
             response.content
@@ -291,7 +337,6 @@ Diff:
         log_error(state, "analyze_security", exc)
         raise
 
-# SUBSTITUIR analyze_quality POR ESTA VERSÃO
 
 def analyze_quality(state):
     try:
@@ -336,7 +381,13 @@ Diff:
 {diff_content}
 """
 
-        response = llm.invoke(prompt)
+        response = invoke_llm_with_resilience(state, "analyze_quality", prompt)
+
+        if isinstance(response, dict):
+            return {
+                "quality_summary": response.get("summary", "Falha na análise"),
+                "quality_risks": response.get("risks", ["LLM indisponível"])
+            }
 
         cleaned = extract_json(
             response.content
