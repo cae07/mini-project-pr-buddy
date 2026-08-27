@@ -1,403 +1,270 @@
 # PR Buddy
 
-Agente de IA simples e funcional para apoiar a revisão de Pull Requests usando **LangGraph** e **Gemini 2.5 Flash**.
-
-O objetivo do projeto é automatizar uma etapa comum do ciclo de desenvolvimento: analisar mudanças de código a partir de um arquivo de entrada e gerar um relatório técnico estruturado com resumo, riscos e recomendação final.
+Agente de análise de Pull Requests baseado em LangGraph e Google Gemini. Recebe um `diff` (arquivo de alterações), executa validações, análises paralelas e consolida uma saída estruturada composta por resumo, riscos e recomendação, além de gerar um relatório em Markdown.
 
 ---
 
-## Visão Geral
+## 1. Visão Geral
 
-O **PR Buddy** recebe um arquivo com o conteúdo de um Pull Request, como um `diff.txt`, valida a entrada, analisa o conteúdo com apoio de uma LLM e gera um relatório em Markdown.
-
-A aplicação foi criada como mini-projeto avaliativo da disciplina **IA para Desenvolvedores**, com foco em agentes de IA, uso de estado, ferramentas, contexto e fluxo com LangGraph.
+O projeto converte um arquivo de diff em uma análise automatizada para apoiar revisões de código. O fluxo inclui validação, verificações de segurança (prompt injection guard), análises paralelas (segurança + qualidade), consolidação, e geração de relatório. Integração opcional com um fluxo low-code via webhook n8n está disponível.
 
 ---
 
-## Problema Escolhido
+## 2. Arquitetura
 
-Revisões de Pull Requests são atividades importantes, mas podem ser demoradas e inconsistentes quando feitas apenas manualmente.
-
-Durante uma revisão, alguns pontos podem passar despercebidos, como:
-
-- ausência de testes;
-- mudanças sem documentação;
-- alterações em arquivos sensíveis;
-- riscos de segurança;
-- impacto em funcionalidades existentes;
-- descrição insuficiente do Pull Request.
-
-O **PR Buddy** não substitui a revisão humana, mas atua como apoio para identificar pontos de atenção de forma rápida e padronizada.
+- Entrada: [examples/diff.txt](examples/diff.txt)
+- Orquestração: `src/graph/workflow.py` (grafo LangGraph)
+- Nós / Ferramentas: `src/graph/nodes.py` (validação, análise LLM, paralelização, fallback)
+- Estado tipado: `src/graph/state.py`
+- Ferramentas auxiliares: `src/tools/*` (ex.: `report_tool.py`, `webhook_tool.py`, `memory_tool.py`)
+- Persistência de revisões: `data/reviews.json`
 
 ---
 
-## Objetivo do Agente
+## 3. Fluxo do Workflow
 
-O agente tem como objetivo analisar um arquivo contendo alterações de código e gerar uma recomendação estruturada para apoiar a revisão do Pull Request.
+Fluxo resumido:
 
-A recomendação final pode ser:
-
-- `APROVAR`: quando não forem encontrados riscos relevantes;
-- `ATENCAO`: quando existirem pontos que precisam de revisão;
-- `BLOQUEAR`: quando forem encontrados riscos críticos ou problemas importantes.
+1. Leitura do arquivo de entrada
+2. Validação (existência, não-vazio)
+3. Executa verificações paralelas: segurança (prompt injection + análise de risco) e qualidade
+4. Consolida resultados (summary, risks, recommendation)
+5. Persiste análise em `data/reviews.json`
+6. Gera `examples/review_report.md` e logs
+7. Envia notificação para webhook n8n quando configurado
 
 ---
 
-## Entrada Esperada
+## 4. Tecnologias Utilizadas
 
-A entrada principal da aplicação é um arquivo de texto contendo o conteúdo do Pull Request.
+- Python 3.10+
+- LangGraph (fluxo/estado)
+- LangChain + langchain-google-genai (integração com Google Gemini)
+- python-dotenv (carregar `.env`)
+- n8n (integração via webhook, fluxo low-code)
 
-Exemplo:
+---
 
-```text
-examples/diff.txt
+## 5. Estrutura do Projeto
+
+Veja a estrutura principal:
+
 ```
-
-Exemplo de conteúdo:
-
-```txt
-+ Added authentication endpoint
-- No tests added
-+ Updated login page
-```
-
----
-
-## Saída Produzida
-
-A aplicação gera uma resposta no terminal e também cria um relatório em Markdown.
-
-Exemplo de relatório gerado:
-
-```md
-# Review Report
-
-## Summary
-Resumo da análise realizada pelo agente.
-
-## Risks
-- Risco identificado 1
-- Risco identificado 2
-
-## Recommendation
-ATENCAO
-```
-
-Arquivo gerado:
-
-```text
-examples/review_report.md
-```
-
----
-
-## Fluxo da Solução com LangGraph
-
-O fluxo do agente foi implementado com **LangGraph**, utilizando um grafo de estados para organizar as etapas de execução.
-
-Fluxo geral:
-
-```text
-Entrada do usuário
-      ↓
-Leitura do arquivo
-      ↓
-Validação da entrada
-      ↓
-Análise com LLM
-      ↓
-Geração do relatório
-      ↓
-Resposta final estruturada
-```
-
----
-
-## Por que esta solução é um agente?
-
-A solução pode ser considerada um agente porque possui:
-
-- objetivo claro: revisar Pull Requests;
-- entrada definida: arquivo com diff ou descrição das mudanças;
-- uso de estado compartilhado durante a execução;
-- etapas organizadas em nós com LangGraph;
-- integração com ferramenta real;
-- uso de contexto para apoiar a análise;
-- geração de saída estruturada e útil para o usuário.
-
----
-
-## Estrutura do Projeto
-
-```text
-pr-buddy/
-│
-├── src/
-│   ├── app.py
-│   │
-│   ├── graph/
-│   │   ├── state.py
-│   │   ├── nodes.py
-│   │   └── workflow.py
-│   │
-│   └── tools/
-│       └── report_tool.py
-│
-├── examples/
-│   └── diff.txt
-│
+.
+├── data/
+│   └── reviews.json
 ├── docs/
 │   └── prompts.md
-│
-├── .env.example
-├── .gitignore
-├── README.md
+├── examples/
+│   ├── diff.txt
+│   └── review_report.md    # saída de exemplo
+├── src/
+│   ├── app.py
+│   ├── graph/
+│   │   ├── nodes.py
+│   │   ├── state.py
+│   │   └── workflow.py
+│   └── tools/
+│       ├── report_tool.py
+│       ├── webhook_tool.py
+│       └── memory_tool.py
+├── tests/
 └── requirements.txt
 ```
 
 ---
 
-## Tecnologias Utilizadas
+## 6. Configuração do Ambiente
 
-- Python
-- LangGraph
-- LangChain
-- Google Gemini via `langchain-google-genai`
-- Python Dotenv
-- Markdown para geração do relatório
-
----
-
-## Requisitos
-
-Antes de executar a aplicação, é necessário ter instalado:
-
-- Python 3.10 ou superior;
-- chave de API do Google Gemini;
-- dependências listadas em `requirements.txt`.
-
----
-
-## Instalação
-
-Clone o repositório:
-
-```bash
-git clone <url-do-repositorio>
-cd pr-buddy
-```
-
-Crie um ambiente virtual:
+1. Criar e ativar um ambiente virtual:
 
 ```bash
 python -m venv .venv
+.venv\Scripts\activate   # Windows
 ```
 
-Ative o ambiente virtual:
-
-No Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
-No Linux/macOS:
-
-```bash
-source .venv/bin/activate
-```
-
-Instale as dependências:
+2. Instalar dependências:
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## Configuração das Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz do projeto:
-
-```text
-pr-buddy/.env
-```
-
-Adicione sua chave da LLM no arquivo `.env`:
-
-```env
-GOOGLE_API_KEY=sua_chave_google_aqui
-GEMINI_MODEL=gemini-2.5-flash
-```
-
-> Atenção: o arquivo `.env` não deve ser versionado no GitHub.
-
-O projeto deve conter apenas o arquivo `.env.example` com nomes das variáveis, sem valores reais:
-
-```env
-GOOGLE_API_KEY=
-GEMINI_MODEL=gemini-2.5-flash
-```
+3. Criar `.env` a partir de `.env.example` e preencher variáveis (ver seção 7).
 
 ---
 
-## Executando a Aplicação
+## 7. Variáveis de Ambiente
 
-Na raiz do projeto, execute:
+Adicione um arquivo `.env` na raiz com pelo menos:
+
+```env
+GOOGLE_API_KEY=seu_api_key
+GEMINI_MODEL=gemini-2.5-flash
+N8N_WEBHOOK_URL=https://seu-n8n.example/webhook  # opcional
+```
+
+Não versionar o `.env`.
+
+---
+
+## 8. Modo de Uso
+
+Passos mínimos para executar a análise:
+
+1. Instalar dependências (`requirements.txt`).
+2. Configurar `.env` com `GOOGLE_API_KEY` e `GEMINI_MODEL`.
+3. Colocar o diff de entrada em [examples/diff.txt](examples/diff.txt).
+4. Executar a aplicação:
 
 ```bash
 python src/app.py
 ```
 
+O que é gerado:
+
+- Relatório Markdown consolidado: [examples/review_report.md](examples/review_report.md)
+- Registro persistente das revisões: `data/reviews.json` (append/atualização)
+- Logs de execução: `logs/` (tempo de execução, eventos, erros)
+- Métricas: `metrics/metrics.json` (tempos, sucessos/falhas, retries)
+
+Quando ocorre envio para o n8n:
+
+- Se a variável `N8N_WEBHOOK_URL` estiver configurada e o nó de notificação estiver habilitado no fluxo, após a consolidação da análise o sistema tenta enviar um POST ao webhook n8n com o payload de notificação.
+- Em caso de falha no envio, o sistema aplica políticas de retry e fallback configuradas no fluxo.
+
 ---
 
-## Exemplo de Execução
+## 9. Fluxo n8n
 
-Arquivo de entrada:
+Fluxo esperado no n8n:
 
-```text
-examples/diff.txt
+Aplicação
+            ↓
+Webhook n8n
+            ↓
+Prepare Data
+            ↓
+Build File Content
+            ↓
+Write File
+            ↓
+Respond
+
+Dados enviados no `POST` para o webhook n8n (exemplo):
+
+```json
+{
+      "trace_id": "<uuid>",
+      "summary": "Resumo curto da análise",
+      "recommendation": "ATENCAO",
+      "risks": [
+            "Risco A",
+            "Risco B"
+      ]
+}
 ```
 
-Conteúdo de exemplo:
+Observações:
 
-```txt
-+ Added authentication endpoint
-- No tests added
-+ Updated login page
+- O n8n pode receber o payload, transformar e escrever arquivos (ex.: criar `review_report.md`) ou notificar canais externos.
+
+---
+
+## 10. Segurança
+
+- Prompt Injection Guard: proteção e validações antes de enviar conteúdo para a LLM.
+- Não versionar segredos (`.env`).
+- Validações básicas de entrada (arquivo existente, não vazio).
+- Logs e métricas não armazenam chaves sensíveis.
+
+---
+
+## 11. Observabilidade
+
+- Logs organizados em `logs/` com eventos de workflow, erros e chamadas externas.
+- Tracing/`trace_id` por execução para correlação entre logs, métricas e webhook.
+- Métricas de execução em `metrics/metrics.json` (latência, número de retries, sucesso/erro por nó).
+
+---
+
+## 12. Métricas
+
+Registro principal: `metrics/metrics.json`.
+
+Exemplos de métricas coletadas:
+
+- `execution_time_ms` — tempo total de execução
+- `llm_call_count` — número de chamadas à LLM
+- `retries` — número de tentativas em operações com retry
+- `webhook_success` / `webhook_failure`
+
+Essas métricas são usadas para observabilidade e para alimentar alertas no ambiente onde for necessário.
+
+---
+
+## 13. Resiliência
+
+- Timeout e retry aplicados a chamadas externas (LLM, webhook).
+- Fallbacks: quando a análise crítica falha, o sistema tenta gerar uma resposta parcial e registrar a falha para investigação.
+- Execução paralela de checks para reduzir latência e isolar falhas.
+
+---
+
+## 14. Memória Persistente
+
+- Revisões armazenadas em `data/reviews.json` com o formato mínimo:
+
+```json
+{
+      "trace_id": "<uuid>",
+      "timestamp": "2026-08-27T12:00:00Z",
+      "summary": "...",
+      "recommendation": "ATENCAO",
+      "risks": ["..."],
+      "report_path": "examples/review_report.md"
+}
 ```
 
-Saída esperada no terminal:
+- Essa memória permite histórico de análises para auditoria e consultas posteriores.
 
-```text
-RESUMO
-Alteração inclui novo endpoint de autenticação e atualização da tela de login.
+---
 
-RECOMENDACAO
+## 15. Exemplo de Saída
+
+- `examples/review_report.md` (trecho):
+
+```md
+# Review Report
+
+## Summary
+Alterações adicionam endpoint de autenticação; testes ausentes; alteração de rota crítica.
+
+## Risks
+- Ausência de testes automatizados
+- Possível quebra de autenticação
+
+## Recommendation
 ATENCAO
-
-RELATORIO
-examples/review_report.md
 ```
 
----
-
-## Ferramenta Integrada
-
-A aplicação utiliza uma ferramenta simples e real para geração de relatório.
-
-A ferramenta é responsável por:
-
-- receber o resumo da análise;
-- receber a lista de riscos identificados;
-- receber a recomendação final;
-- gerar um arquivo Markdown com o resultado.
-
-Arquivo responsável:
-
-```text
-src/tools/report_tool.py
-```
-
-Relatório gerado:
-
-```text
-examples/review_report.md
-```
+- Payload enviado ao n8n (exemplo já mostrado na Seção 9).
 
 ---
 
-## Estado e Contexto
+## 16. Próximos Passos
 
-O estado do agente armazena informações importantes durante a execução do fluxo.
-
-Exemplos de informações mantidas no estado:
-
-- caminho do arquivo analisado;
-- conteúdo do diff;
-- resumo da análise;
-- riscos encontrados;
-- recomendação final;
-- caminho do relatório gerado.
-
-Arquivo responsável pelo estado:
-
-```text
-src/graph/state.py
-```
+- Melhorias em prompts e cobertura de checagens automatizadas.
+- Normalização e enriquecimento das métricas para dashboards.
+- Políticas de retenção e indexação de `data/reviews.json`.
 
 ---
 
-## Validações Básicas
+Se quiser, eu posso (opcional):
 
-A aplicação realiza validações simples antes de processar a entrada.
+- rodar a aplicação localmente com seu `.env` configurado; 
+- executar um teste que demonstre o envio para n8n (mockado);
+- ou atualizar o `examples/review_report.md` com um relatório gerado a partir do `examples/diff.txt`.
 
-Exemplos:
-
-- verifica se o arquivo existe;
-- verifica se o conteúdo não está vazio;
-- evita processar entradas inválidas;
-- pode ser expandida para limitar tamanho de arquivo ou bloquear dados sensíveis.
-
-Essas validações ajudam a manter o uso da ferramenta mais controlado e seguro.
-
----
-
-## Cuidados de Segurança
-
-O projeto adota cuidados básicos para evitar exposição de dados sensíveis:
-
-- não versiona o arquivo `.env`;
-- utiliza `.env.example` apenas como modelo;
-- ignora arquivos de ambiente no `.gitignore`;
-- não coloca chaves de API diretamente no código;
-- gera relatórios locais sem expor dados externos desnecessariamente.
-
----
-
-## Prompts Utilizados
-
-Os principais prompts utilizados no planejamento, implementação e melhoria do agente devem ser documentados em:
-
-```text
-docs/prompts.md
-```
-
-Esse arquivo pode conter prompts usados para:
-
-- definir a ideia do projeto;
-- estruturar o agente;
-- implementar o fluxo com LangGraph;
-- corrigir erros;
-- melhorar a saída estruturada;
-- documentar o projeto.
-
----
-
-## Decisões Técnicas
-
-Principais decisões adotadas no projeto:
-
-1. **Uso de LangGraph**  
-   Escolhido para representar o fluxo do agente com estado, nós e conexões.
-
-2. **Uso de Gemini 2.5 Flash**  
-   Escolhido como modelo de LLM por ser uma opção rápida e suficiente para análise textual simples.
-
-3. **Entrada via arquivo local**  
-   Mantém a demonstração simples e evita dependência de integrações externas complexas.
-
-4. **Relatório em Markdown**  
-   Facilita leitura, versionamento e demonstração do resultado.
-
-5. **Validação básica antes da análise**  
-   Evita processar entradas vazias ou inválidas.
-
----
-
-## Limitações da Solução
-
-Esta é uma versão simples para fins acadêmicos. Algumas limitações conhecidas:
 
 - não acessa Pull Requests reais de plataformas como GitHub ou Azure DevOps;
 - não executa testes automatizados;

@@ -737,6 +737,78 @@ Ao finalizar:
 - Mostrar onde execution_time é calculado.
 - Exibir exemplo do metrics.json gerado.
 
+---
+
+## 19 - Integração
+
+Objetivo: finalizar a integração entre o app e o workflow n8n já criado.
+
+Contexto:
+- O workflow n8n já existe e está funcional:
+  Webhook → Prepare Data → Build File Content → Write File → Respond
+- Já existe a tool webhook_tool.py.
+- O workflow atual do LangGraph termina com:
+  generate_report → save_history → persist_metrics
+- O sistema já possui:
+  - trace_id
+  - summary
+  - recommendation
+  - risks
+  - métricas
+  - observabilidade
+
+Tarefas:
+
+1. Criar node send_notification.
+2. Integrar webhook_tool.py ao node.
+3. Enviar para o webhook do n8n:
+
+{
+  "trace_id": trace_id,
+  "recommendation": recommendation,
+  "summary": summary,
+  "risks": risks
+}
+
+4. Tornar a URL configurável via .env:
+
+N8N_WEBHOOK_URL=
+
+5. Em caso de falha:
+   - registrar erro utilizando logger existente
+   - não interromper o workflow
+   - continuar execução normalmente
+
+6. Atualizar o workflow:
+
+generate_report
+    |
+save_history
+    |
+persist_metrics
+    |
+send_notification
+    |
+END
+
+Regras:
+- Não alterar memória persistente.
+- Não alterar métricas.
+- Não alterar observabilidade.
+- Não alterar paralelização.
+- Não alterar segurança.
+- Não alterar relatório.
+- Falha no webhook não pode quebrar a execução.
+- Implementar apenas o necessário para concluir a integração.
+
+Ao finalizar:
+- Listar arquivos alterados.
+- Exibir node send_notification completo.
+- Exibir workflow.py atualizado.
+- Exibir exemplo do .env.
+- Mostrar exatamente onde o webhook é chamado.
+
+
 ## Observação Final
 
 Os prompts acima foram utilizados como apoio para concepção, implementação, correção e documentação do projeto.
