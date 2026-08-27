@@ -21,5 +21,25 @@ def main():
     print('SECURITY_TEST_OK')
 
 
+def test_llm_failure_uses_fallback(monkeypatch):
+    import graph.nodes as nodes
+
+    def raise_runtime_error(*args, **kwargs):
+        raise RuntimeError('LLM indisponível')
+
+    monkeypatch.setattr(type(nodes.llm), 'invoke', raise_runtime_error)
+
+    graph = build_graph()
+    file_path = Path(__file__).resolve().parents[1] / 'examples' / 'diff.txt'
+    result = graph.invoke({
+        'file_path': str(file_path)
+    })
+
+    assert result['summary'] == 'Security:\nFalha na análise\n\nQuality:\nFalha na análise' or 'Falha na análise' in result['summary'], result
+    assert result['recommendation'] == 'ATENCAO', result
+    assert 'llm indisponível' in ' '.join(result['risks']).lower(), result
+    assert result['report_path'] == 'examples/review_report.md', result
+
+
 if __name__ == '__main__':
     main()
