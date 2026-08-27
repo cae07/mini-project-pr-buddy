@@ -4,6 +4,7 @@ from typing import TypedDict
 class PRReviewState(TypedDict):
 
     trace_id: str
+    started_at: str
     file_path: str
     diff_content: str
 
@@ -20,5 +21,9 @@ class PRReviewState(TypedDict):
 
     recommendation: str
     flow_status: str
+
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
 
     report_path: str

@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime, timezone
 from tools.extract_json_tool import extract_json
 from tools.report_tool import write_report
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -8,6 +9,7 @@ from tools.memory_tool import (
     load_review_history,
     save_review_history
 )
+from metrics import persist_metrics
 
 import json
 import re
@@ -32,6 +34,7 @@ load_dotenv()
 def load_diff(state):
     try:
         state["trace_id"] = ensure_trace_id(state)
+        state["started_at"] = datetime.now(timezone.utc).isoformat()
         log_event(state, "workflow_started", "load_diff")
 
         content = Path(
@@ -42,6 +45,7 @@ def load_diff(state):
 
         return {
             "trace_id": state["trace_id"],
+            "started_at": state["started_at"],
             "diff_content": content
         }
     except Exception as exc:
@@ -223,6 +227,22 @@ def generate_report(state):
         log_error(state, "generate_report", exc)
         raise
 
+def _collect_usage(response):
+    usage = getattr(response, "usage_metadata", None)
+    if not usage:
+        usage = {}
+
+    prompt_tokens = usage.get("prompt_token_count", usage.get("input_tokens", 0)) or 0
+    completion_tokens = usage.get("completion_token_count", usage.get("output_tokens", 0)) or 0
+    total_tokens = usage.get("total_token_count", prompt_tokens + completion_tokens) or 0
+
+    return {
+        "prompt_tokens": int(prompt_tokens),
+        "completion_tokens": int(completion_tokens),
+        "total_tokens": int(total_tokens)
+    }
+
+
 def analyze_security(state):
     try:
         state["trace_id"] = ensure_trace_id(state)
@@ -268,6 +288,10 @@ Diff:
 """
 
         response = llm.invoke(prompt)
+        usage = _collect_usage(response)
+        state["prompt_tokens"] = int(state.get("prompt_tokens", 0)) + usage["prompt_tokens"]
+        state["completion_tokens"] = int(state.get("completion_tokens", 0)) + usage["completion_tokens"]
+        state["total_tokens"] = int(state.get("total_tokens", 0)) + usage["total_tokens"]
 
         cleaned = extract_json(
             response.content
@@ -337,6 +361,10 @@ Diff:
 """
 
         response = llm.invoke(prompt)
+        usage = _collect_usage(response)
+        state["prompt_tokens"] = int(state.get("prompt_tokens", 0)) + usage["prompt_tokens"]
+        state["completion_tokens"] = int(state.get("completion_tokens", 0)) + usage["completion_tokens"]
+        state["total_tokens"] = int(state.get("total_tokens", 0)) + usage["total_tokens"]
 
         cleaned = extract_json(
             response.content
@@ -507,6 +535,8 @@ def save_history(state):
             risks=state["risks"],
             recommendation=state["recommendation"]
         )
+
+        persist_metrics(state)
 
         log_event(state, "workflow_finished", "save_history", recommendation=state["recommendation"], flow_status=state.get("flow_status", "unknown"))
         return state
