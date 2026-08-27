@@ -9,6 +9,7 @@ from tools.memory_tool import (
     load_review_history,
     save_review_history
 )
+from tools import webhook_tool
 from metrics import persist_metrics
 
 import json
@@ -562,6 +563,54 @@ def route_recommendation(state):
     except Exception as exc:
         log_error(state, "route_recommendation", exc)
         raise
+
+
+def send_notification(state):
+    try:
+        state["trace_id"] = ensure_trace_id(state)
+        webhook_url = os.getenv("N8N_WEBHOOK_URL", "").strip()
+
+        if not webhook_url:
+            log_event(
+                state,
+                "webhook_skipped",
+                "send_notification",
+                reason="N8N_WEBHOOK_URL not configured",
+                recommendation=state.get("recommendation", "ATENCAO")
+            )
+            return state
+
+        try:
+            webhook_tool.send_review_notification(
+                webhook_url=webhook_url,
+                trace_id=state["trace_id"],
+                summary=state.get("summary", ""),
+                recommendation=state.get("recommendation", "ATENCAO"),
+                risks=state.get("risks", [])
+            )
+            log_event(
+                state,
+                "webhook_sent",
+                "send_notification",
+                webhook_url=webhook_url,
+                recommendation=state.get("recommendation", "ATENCAO"),
+                total_risks=len(state.get("risks", []))
+            )
+            return state
+        except Exception as exc:
+            log_error(state, "send_notification", exc)
+            log_event(
+                state,
+                "webhook_failed",
+                "send_notification",
+                webhook_url=webhook_url,
+                recommendation=state.get("recommendation", "ATENCAO"),
+                total_risks=len(state.get("risks", []))
+            )
+            return state
+    except Exception as exc:
+        log_error(state, "send_notification", exc)
+        return state
 
 
 def save_history(state):

@@ -17,7 +17,8 @@ from graph.nodes import (
     attention_flow,
     block_flow,
     route_recommendation,
-    generate_report
+    generate_report,
+    send_notification
 )
 
 
@@ -85,6 +86,11 @@ def build_graph():
     graph.add_node(
         "save_history",
         save_history
+    )
+
+    graph.add_node(
+        "send_notification",
+        send_notification
     )
 
     graph.set_entry_point(
@@ -174,6 +180,11 @@ def build_graph():
 
     graph.add_edge(
         "save_history",
+        "send_notification"
+    )
+
+    graph.add_edge(
+        "send_notification",
         END
     )
 
