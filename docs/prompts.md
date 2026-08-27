@@ -683,6 +683,60 @@ Ao finalizar:
 
 ---
 
+## 18 - Implementar métricas
+Objetivo: implementar métricas com o menor número possível de alterações.
+
+Tarefas:
+
+1. Criar módulo metrics
+   - salvar em metrics/metrics.json
+
+2. Medir:
+   - execution_time
+   - recommendation
+   - total_risks
+   - prompt_tokens (se disponível)
+   - completion_tokens (se disponível)
+   - total_tokens (se disponível)
+
+3. Atualizar State
+   Adicionar:
+   - started_at
+
+4. Fluxo:
+   - registrar started_at no início da execução
+   - calcular duração ao final
+   - persistir métricas após save_history
+
+5. Formato:
+
+{
+  "timestamp": "...",
+  "trace_id": "...",
+  "execution_time": 0.0,
+  "recommendation": "...",
+  "total_risks": 0,
+  "prompt_tokens": 0,
+  "completion_tokens": 0,
+  "total_tokens": 0
+}
+
+Regras:
+- Utilizar apenas time/datetime/json.
+- Se o provider não retornar tokens, salvar 0.
+- Não alterar regras de negócio.
+- Não alterar relatório.
+- Não alterar memória.
+- Não alterar observabilidade existente.
+- Não implementar dashboards ou visualizações.
+- Implementar apenas o necessário para atender ao requisito de métricas.
+
+Ao finalizar:
+- Listar arquivos alterados.
+- Mostrar onde started_at é criado.
+- Mostrar onde execution_time é calculado.
+- Exibir exemplo do metrics.json gerado.
+
 ## Observação Final
 
 Os prompts acima foram utilizados como apoio para concepção, implementação, correção e documentação do projeto.
