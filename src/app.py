@@ -1,5 +1,6 @@
-from graph.workflow import build_graph
 from dotenv import load_dotenv
+
+from graph.workflow import build_graph
 
 load_dotenv()
 

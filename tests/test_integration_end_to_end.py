@@ -8,8 +8,7 @@ os.environ.setdefault('MCP_URL', 'https://example.test/mcp')
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 
-import graph.workflow as workflow
-
+from graph import workflow
 from graph.workflow import build_graph
 
 
@@ -19,7 +18,7 @@ class FakeLLMResponse:
 
 
 def test_integration_happy_path(monkeypatch):
-    import graph.nodes as nodes
+    from graph import nodes
 
     def fake_llm_invoke(prompt, config=None):
         prompt_lower = prompt.lower()
@@ -58,7 +57,7 @@ def test_integration_happy_path(monkeypatch):
 
 
 def test_integration_failure_path_retry_and_fallback(monkeypatch):
-    import graph.nodes as nodes
+    from graph import nodes
 
     llm_attempts = {'count': 0}
 

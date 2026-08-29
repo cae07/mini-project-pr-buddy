@@ -1,5 +1,5 @@
-import os
 import json
+import os
 
 
 class LLMClient:
@@ -10,7 +10,7 @@ class LLMClient:
         if self.provider == "google":
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
-            except Exception as exc:
+            except ImportError as exc:
                 raise RuntimeError("langchain_google_genai is required for provider 'google'.") from exc
 
             self.client = ChatGoogleGenerativeAI(
@@ -23,7 +23,7 @@ class LLMClient:
         elif self.provider == "groq":
             try:
                 from langchain_groq import ChatGroq
-            except Exception as exc:
+            except ImportError as exc:
                 raise RuntimeError("langchain_groq is required for provider 'groq'. Install with 'pip install langchain-groq'.") from exc
 
             self.client = ChatGroq(api_key=os.getenv("GROQ_API_KEY"), model=os.getenv("GROQ_MODEL", "groq-alpha"))
@@ -34,7 +34,11 @@ class LLMClient:
                 raise RuntimeError("MCP_URL must be set when LLM_PROVIDER=mcp")
             try:
                 import requests
-            except Exception as exc:
+            except (
+                TimeoutError,
+                ValueError,
+                requests.RequestException,
+            ) as exc:
                 raise RuntimeError("requests library is required for MCP provider. Install with 'pip install requests'.") from exc
             self.requests = requests
 
@@ -45,27 +49,24 @@ class LLMClient:
         config = config or {}
 
         if self.provider == "mcp":
+            resp = self.requests.post(self.mcp_url, json={"prompt": prompt, "config": config}, timeout=self.timeout)
+            resp.raise_for_status()
             try:
-                resp = self.requests.post(self.mcp_url, json={"prompt": prompt, "config": config}, timeout=self.timeout)
-                resp.raise_for_status()
-                try:
-                    body = resp.json()
-                except Exception:
-                    body = {"content": resp.text}
+                body = resp.json()
+            except ValueError:
+                body = {"content": resp.text}
 
-                content = body.get("content") or body.get("response") or body.get("result") or body.get("output") or body.get("text")
-                if content is None:
-                    content = json.dumps(body, ensure_ascii=False)
+            content = body.get("content") or body.get("response") or body.get("result") or body.get("output") or body.get("text")
+            if content is None:
+                content = json.dumps(body, ensure_ascii=False)
 
-                class Response:
-                    pass
+            class Response:
+                pass
 
-                r = Response()
-                r.content = content
-                r.usage_metadata = body.get("usage", {}) if isinstance(body, dict) else {}
-                return r
-            except Exception:
-                raise
+            r = Response()
+            r.content = content
+            r.usage_metadata = body.get("usage", {}) if isinstance(body, dict) else {}
+            return r
 
         # Delegation for provider clients (google / groq)
         client = getattr(self, "client", None)

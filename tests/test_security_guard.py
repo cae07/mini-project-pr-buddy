@@ -22,7 +22,7 @@ def main():
 
 
 def test_llm_failure_uses_fallback(monkeypatch):
-    import graph.workflow as workflow
+    from graph import workflow
 
     def fake_security_node(state):
         return {

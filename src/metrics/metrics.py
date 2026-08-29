@@ -2,7 +2,6 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 METRICS_DIR = Path(__file__).resolve().parents[2] / 'metrics'
 METRICS_DIR.mkdir(exist_ok=True, parents=True)
 METRICS_PATH = METRICS_DIR / 'metrics.json'
