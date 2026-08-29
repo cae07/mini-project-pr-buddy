@@ -4,3 +4,6 @@ langchain-google-genai
 langchain-groq
 python-dotenv
 requests
+pytest>=8.0.0
+pytest-cov>=6.0.0
+ruff>=0.12.0
