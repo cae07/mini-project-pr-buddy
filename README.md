@@ -64,6 +64,8 @@ Veja a estrutura principal:
 │   │   ├── nodes.py
 │   │   ├── state.py
 │   │   └── workflow.py
+ │   ├── llm/
+ │   │   └── client.py      # wrapper agnóstico para provedores LLM
 │   └── tools/
 │       ├── report_tool.py
 │       ├── webhook_tool.py
@@ -71,6 +73,14 @@ Veja a estrutura principal:
 ├── tests/
 └── requirements.txt
 ```
+
+Observação: o projeto inclui um wrapper LLM em `src/llm/client.py` que unifica chamadas a diferentes provedores. O wrapper:
+
+- Suporta `LLM_PROVIDER=google` (padrão) — usa `GOOGLE_API_KEY` e o cliente Google GenAI.
+- Suporta `LLM_PROVIDER=groq` — requer `GROQ_API_KEY` e a biblioteca `langchain-groq` instalada.
+- Suporta `LLM_PROVIDER=mcp` — envia prompts como `POST` para a URL definida em `MCP_URL` (requere `requests`).
+
+A lógica do wrapper permite trocar de provedor apenas ajustando variáveis de ambiente, sem alterar `src/graph/nodes.py`.
 
 ---
 
@@ -98,12 +108,47 @@ pip install -r requirements.txt
 Adicione um arquivo `.env` na raiz com pelo menos:
 
 ```env
-GOOGLE_API_KEY=seu_api_key
+LLM_PROVIDER=groq|google
+GOOGLE_API_KEY=seu_google_api_key
+      ou
+GROQ_API_KEY=seu_groq_api_key
+
 GEMINI_MODEL=gemini-2.5-flash
+      ou
+GROQ_MODEL=llama-3.3-70b-versatile
 N8N_WEBHOOK_URL=https://seu-n8n.example/webhook  # opcional
 ```
 
 Não versionar o `.env`.
+
+Observação sobre provedores LLM e opções de configuração:
+
+- `LLM_PROVIDER`: define qual provedor será usado pelo wrapper LLM. Valores suportados: `google` (padrão), `groq`, `mcp`.
+- Quando `LLM_PROVIDER=groq` use:
+
+```env
+LLM_PROVIDER=groq
+GROQ_API_KEY=seu_groq_api_key
+GROQ_MODEL=groq-alpha   # opcional, ajuste conforme disponibilidade
+```
+
+- Quando `LLM_PROVIDER=mcp` (usar um MCP self-hosted ou remoto que aceite prompts JSON):
+
+```env
+LLM_PROVIDER=mcp
+MCP_URL=https://seu-mcp/endpoint
+```
+
+O wrapper LLM incluído no projeto busca as variáveis acima e mapeia chamadas para:
+- cliente Google GenAI quando `LLM_PROVIDER=google` (usa `GOOGLE_API_KEY`);
+- cliente Groq quando `LLM_PROVIDER=groq` (requer `langchain-groq` instalado);
+- uma chamada HTTP POST para `MCP_URL` quando `LLM_PROVIDER=mcp` (requer `requests`).
+
+Dependências opcionais (instalar apenas se utilizar o provedor correspondente):
+
+- `langchain-groq` — necessário para `groq`.
+- `requests` — necessário para `mcp` (já adicionado ao `requirements.txt`).
+
 
 ---
 

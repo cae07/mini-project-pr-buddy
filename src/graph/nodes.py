@@ -2,7 +2,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from tools.extract_json_tool import extract_json
 from tools.report_tool import write_report
-from langchain_google_genai import ChatGoogleGenerativeAI
+from llm.client import LLMClient
 from tools.logger import log_event, log_error, ensure_trace_id
 
 from tools.memory_tool import (
@@ -128,17 +128,7 @@ def security_guard(state):
 def route_security(state):
     return "blocked" if state.get("flow_status") == "blocked" else "safe"
 
-llm = ChatGoogleGenerativeAI(
-    model=os.getenv(
-        "GEMINI_MODEL",
-        "GEMINI_MODEL"
-    ),
-    google_api_key=os.getenv(
-        "GOOGLE_API_KEY"
-    ),
-    temperature=0,
-    request_timeout=LLM_TIMEOUT_SECONDS
-)
+llm = LLMClient()
 
 
 def invoke_llm_with_resilience(state, node, prompt):
@@ -567,6 +557,7 @@ def route_recommendation(state):
 
 def send_notification(state):
     try:
+        print("Sending notification...")
         state["trace_id"] = ensure_trace_id(state)
         webhook_url = os.getenv("N8N_WEBHOOK_URL", "").strip()
 
@@ -581,6 +572,7 @@ def send_notification(state):
             return state
 
         try:
+            print("Invoking webhook...")
             webhook_tool.send_review_notification(
                 webhook_url=webhook_url,
                 trace_id=state["trace_id"],
