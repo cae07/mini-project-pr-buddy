@@ -808,6 +808,53 @@ Ao finalizar:
 - Exibir exemplo do .env.
 - Mostrar exatamente onde o webhook é chamado.
 
+---
+
+## 20 - Testes de Integração
+Objetivo: criar apenas os testes de integração mínimos necessários para validar o sistema ponta a ponta.
+
+Tarefas:
+
+Criar 2 testes de integração.
+
+TESTE 1 — Happy Path
+
+Validar:
+
+- execução completa via graph.invoke()
+- mock da LLM
+- mock do webhook externo
+- summary preenchido
+- recommendation preenchido
+- report_path preenchido
+- workflow concluído sem exceções
+
+TESTE 2 — Failure Path
+
+Validar:
+
+- exceção simulada na LLM
+- retry executado
+- fallback acionado
+- recommendation = "ATENCAO"
+- relatório gerado normalmente
+- workflow concluído sem exceções
+
+Regras:
+
+- Criar apenas 2 testes.
+- Utilizar mocks para dependências externas.
+- Não chamar Gemini real.
+- Não chamar webhook real.
+- Não alterar regras de negócio.
+- Não alterar código de produção sem necessidade.
+- Reutilizar fixtures existentes quando possível.
+
+Ao finalizar:
+
+- Explicar brevemente o que cada cenário valida.
+
+---
 
 ## Observação Final
 

@@ -1,7 +1,6 @@
 import json
-from pathlib import Path
-
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 
@@ -14,7 +13,7 @@ class FakeLLMResponse:
 
 
 def test_metrics_are_persisted_with_started_at_and_tokens(monkeypatch):
-    import graph.nodes as nodes
+    from graph import nodes
 
     def fake_llm_invoke(self_obj, prompt, config=None):
         prompt_lower = (prompt or '').lower()

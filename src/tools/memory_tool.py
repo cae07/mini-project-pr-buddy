@@ -1,6 +1,6 @@
-from pathlib import Path
-from datetime import datetime
 import json
+from datetime import datetime, timezone
+from pathlib import Path
 
 MEMORY_FILE = Path(
     "data/reviews.json"
@@ -22,7 +22,11 @@ def load_review_history(
 
         return data[-limit:]
 
-    except Exception:
+    except (
+        ValueError,
+        OSError,
+        json.JSONDecodeError,
+    ):
         return []
 
 
@@ -42,7 +46,7 @@ def save_review_history(
     )
 
     history.append({
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "summary": summary,
         "risks": risks,
         "recommendation": recommendation

@@ -13,7 +13,7 @@ class FakeLLMResponse:
 
 
 def test_trace_id_and_json_logs_are_produced(monkeypatch):
-    import graph.nodes as nodes
+    from graph import nodes
 
     def fake_llm_invoke(self_obj, prompt, config=None):
         prompt_lower = (prompt or '').lower()

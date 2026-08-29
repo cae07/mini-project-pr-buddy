@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def write_report(
     summary: str,
     risks: list,

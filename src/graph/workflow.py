@@ -1,25 +1,23 @@
-from langgraph.graph import StateGraph
-from langgraph.graph import END
-
-from graph.state import PRReviewState
+from langgraph.graph import END, StateGraph
 
 from graph.nodes import (
-    load_diff,
-    validate_input,
-    security_guard,
-    route_security,
-    load_history,
-    save_history,
-    analyze_security,
     analyze_quality,
-    merge_analysis,
+    analyze_security,
     approve_flow,
     attention_flow,
     block_flow,
-    route_recommendation,
     generate_report,
-    send_notification
+    load_diff,
+    load_history,
+    merge_analysis,
+    route_recommendation,
+    route_security,
+    save_history,
+    security_guard,
+    send_notification,
+    validate_input,
 )
+from graph.state import PRReviewState
 
 
 def build_graph():

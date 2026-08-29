@@ -1,22 +1,19 @@
-from pathlib import Path
-from datetime import datetime, timezone
-from tools.extract_json_tool import extract_json
-from tools.report_tool import write_report
-from llm.client import LLMClient
-from tools.logger import log_event, log_error, ensure_trace_id
-
-from tools.memory_tool import (
-    load_review_history,
-    save_review_history
-)
-from tools import webhook_tool
-from metrics import persist_metrics
-
 import json
-import re
-
 import os
+import re
+from datetime import datetime, timezone
+from pathlib import Path
+
+import requests
 from dotenv import load_dotenv
+
+from llm.client import LLMClient
+from metrics import persist_metrics
+from tools import webhook_tool
+from tools.extract_json_tool import extract_json
+from tools.logger import ensure_trace_id, log_error, log_event
+from tools.memory_tool import load_review_history, save_review_history
+from tools.report_tool import write_report
 
 MAX_DIFF_SIZE_BYTES = 200000
 LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "20"))
@@ -51,7 +48,11 @@ def load_diff(state):
             "started_at": state["started_at"],
             "diff_content": content
         }
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "load_diff", exc)
         raise
 
@@ -63,7 +64,7 @@ def validate_input(state):
         diff_content = state.get("diff_content")
 
         if not isinstance(diff_content, str):
-            raise ValueError("Tipo de entrada inválido")
+            raise TypeError("Tipo de entrada inválido")
 
         if not diff_content.strip():
             raise ValueError("Arquivo vazio")
@@ -83,7 +84,11 @@ def validate_input(state):
 
         state["diff_content"] = diff_content.strip()
         return state
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "validate_input", exc)
         raise
 
@@ -120,7 +125,11 @@ def security_guard(state):
         }
         log_event(state, "validate", "security_guard", status="safe")
         return result
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "security_guard", exc)
         raise
 
@@ -137,7 +146,11 @@ def invoke_llm_with_resilience(state, node, prompt):
     for attempt in range(1, LLM_MAX_ATTEMPTS + 1):
         try:
             return llm.invoke(prompt, config={"timeout": LLM_TIMEOUT_SECONDS})
-        except Exception as exc:
+        except (
+            TimeoutError,
+            ValueError,
+            requests.RequestException,
+        ) as exc:
             last_error = exc
             fallback_activated = attempt >= LLM_MAX_ATTEMPTS
             log_event(
@@ -254,7 +267,11 @@ def generate_report(state):
         return {
             "report_path": path
         }
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "generate_report", exc)
         raise
 
@@ -342,7 +359,11 @@ Diff:
                 []
             )
         }
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "analyze_security", exc)
         raise
 
@@ -414,7 +435,11 @@ Diff:
                 []
             )
         }
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "analyze_quality", exc)
         raise
 
@@ -467,7 +492,11 @@ Quality:
         }
         log_event(state, "decision_made", "merge_analysis", recommendation=recommendation, flow_status="decision", total_risks=len(risks))
         return result
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "merge_analysis", exc)
         raise
 
@@ -482,7 +511,11 @@ def load_history(state):
         return {
             "review_history": history
         }
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "load_history", exc)
         raise
 
@@ -498,7 +531,11 @@ def approve_flow(state):
         }
         log_event(state, "decision_made", "approve_flow", recommendation="APROVAR", flow_status="approve", total_risks=len(result["risks"]))
         return result
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "approve_flow", exc)
         raise
 
@@ -514,7 +551,11 @@ def attention_flow(state):
         }
         log_event(state, "decision_made", "attention_flow", recommendation="ATENCAO", flow_status="attention", total_risks=len(result["risks"]))
         return result
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "attention_flow", exc)
         raise
 
@@ -532,7 +573,11 @@ def block_flow(state):
         }
         log_event(state, "decision_made", "block_flow", recommendation="BLOQUEAR", flow_status="blocked", total_risks=len(risks))
         return result
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "block_flow", exc)
         raise
 
@@ -550,7 +595,11 @@ def route_recommendation(state):
             return "block"
         log_event(state, "decision_made", "route_recommendation", recommendation="ATENCAO", flow_status="attention", total_risks=len(state.get("risks", [])))
         return "attention"
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "route_recommendation", exc)
         raise
 
@@ -589,7 +638,11 @@ def send_notification(state):
                 total_risks=len(state.get("risks", []))
             )
             return state
-        except Exception as exc:
+        except (
+            TimeoutError,
+            ValueError,
+            requests.RequestException,
+        ) as exc:
             log_error(state, "send_notification", exc)
             log_event(
                 state,
@@ -600,7 +653,11 @@ def send_notification(state):
                 total_risks=len(state.get("risks", []))
             )
             return state
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "send_notification", exc)
         return state
 
@@ -620,6 +677,10 @@ def save_history(state):
 
         log_event(state, "workflow_finished", "save_history", recommendation=state["recommendation"], flow_status=state.get("flow_status", "unknown"))
         return state
-    except Exception as exc:
+    except (
+        TimeoutError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         log_error(state, "save_history", exc)
         raise
