@@ -22,12 +22,22 @@ def main():
 
 
 def test_llm_failure_uses_fallback(monkeypatch):
-    import graph.nodes as nodes
+    import graph.workflow as workflow
 
-    def raise_runtime_error(*args, **kwargs):
-        raise RuntimeError('LLM indisponível')
+    def fake_security_node(state):
+        return {
+            'security_summary': 'Falha na análise',
+            'security_risks': ['LLM indisponível']
+        }
 
-    monkeypatch.setattr(type(nodes.llm), 'invoke', raise_runtime_error)
+    def fake_quality_node(state):
+        return {
+            'quality_summary': 'Falha na análise',
+            'quality_risks': ['LLM indisponível']
+        }
+
+    monkeypatch.setattr(workflow, 'analyze_security', fake_security_node)
+    monkeypatch.setattr(workflow, 'analyze_quality', fake_quality_node)
 
     graph = build_graph()
     file_path = Path(__file__).resolve().parents[1] / 'examples' / 'diff.txt'

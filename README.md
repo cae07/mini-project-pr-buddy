@@ -71,6 +71,10 @@ Veja a estrutura principal:
 │       ├── webhook_tool.py
 │       └── memory_tool.py
 ├── tests/
+│   ├── test_integration_end_to_end.py
+│   ├── test_metrics.py
+│   ├── test_observability.py
+│   └── test_security_guard.py
 └── requirements.txt
 ```
 
@@ -296,7 +300,18 @@ ATENCAO
 
 ---
 
-## 16. Próximos Passos
+## 16. Testes de Integração
+
+O projeto contém testes de integração focados no comportamento ponta a ponta do fluxo LangGraph, sem depender de provedores LLM reais ou webhook externo real.
+
+Cenários cobertos em `tests/test_integration_end_to_end.py`:
+
+- Happy path: valida execução completa via `graph.invoke()`, mock da LLM, mock do webhook, preenchimento de `summary`, `recommendation`, `report_path` e conclusão do workflow sem exceções.
+- Failure path: simula falha da LLM, verifica retry e fallback, exige `recommendation == "ATENCAO"`, confirma geração de relatório e continuidade do workflow sem interrupções.
+
+---
+
+## 17. Próximos Passos
 
 - Melhorias em prompts e cobertura de checagens automatizadas.
 - Normalização e enriquecimento das métricas para dashboards.
@@ -312,7 +327,6 @@ Se quiser, eu posso (opcional):
 
 
 - não acessa Pull Requests reais de plataformas como GitHub ou Azure DevOps;
-- não executa testes automatizados;
 - não valida a compilação do projeto analisado;
 - depende da qualidade do conteúdo fornecido no arquivo de entrada;
 - a análise feita pela LLM deve ser revisada por um desenvolvedor.
