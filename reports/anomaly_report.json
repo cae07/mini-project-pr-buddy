@@ -1,0 +1,22 @@
+{
+  "total_events": 1728,
+  "total_failures": 70,
+  "anomalies_detected": true,
+  "recurring_failures": [
+    {
+      "node": "analyze_quality",
+      "event": "error",
+      "occurrences": 31
+    },
+    {
+      "node": "analyze_security",
+      "event": "error",
+      "occurrences": 29
+    },
+    {
+      "node": "send_notification",
+      "event": "error",
+      "occurrences": 9
+    }
+  ]
+}

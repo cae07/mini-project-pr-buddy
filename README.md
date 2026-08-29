@@ -16,8 +16,9 @@ O projeto converte um arquivo de diff em uma análise automatizada para apoiar r
 - Orquestração: `src/graph/workflow.py` (grafo LangGraph)
 - Nós / Ferramentas: `src/graph/nodes.py` (validação, análise LLM, paralelização, fallback)
 - Estado tipado: `src/graph/state.py`
-- Ferramentas auxiliares: `src/tools/*` (ex.: `report_tool.py`, `webhook_tool.py`, `memory_tool.py`)
+- Ferramentas auxiliares: `src/tools/*` (ex.: `report_tool.py`, `webhook_tool.py`, `memory_tool.py`, `log_analyzer.py`)
 - Persistência de revisões: `data/reviews.json`
+- Relatório de anomalias: `reports/anomaly_report.json`
 
 ---
 
@@ -31,7 +32,9 @@ Fluxo resumido:
 4. Consolida resultados (summary, risks, recommendation)
 5. Persiste análise em `data/reviews.json`
 6. Gera `examples/review_report.md` e logs
-7. Envia notificação para webhook n8n quando configurado
+6. Detecta falhas recorrentes em `logs/app.log` via `src/tools/log_analyzer.py`
+7. Escreve o relatório de anomalias em `reports/anomaly_report.json`
+8. Envia notificação para webhook n8n quando configurado
 
 ---
 
@@ -58,20 +61,26 @@ Veja a estrutura principal:
 ├── examples/
 │   ├── diff.txt
 │   └── review_report.md    # saída de exemplo
+├── logs/
+│   └── app.log             # eventos estruturados em JSON
+├── reports/
+│   └── anomaly_report.json # relatório de falhas recorrentes
 ├── src/
 │   ├── app.py
 │   ├── graph/
 │   │   ├── nodes.py
 │   │   ├── state.py
 │   │   └── workflow.py
- │   ├── llm/
- │   │   └── client.py      # wrapper agnóstico para provedores LLM
+│   ├── llm/
+│   │   └── client.py       # wrapper agnóstico para provedores LLM
 │   └── tools/
+│       ├── log_analyzer.py # detecta anomalias em logs
 │       ├── report_tool.py
 │       ├── webhook_tool.py
 │       └── memory_tool.py
 ├── tests/
 │   ├── test_integration_end_to_end.py
+│   ├── test_log_analyzer.py
 │   ├── test_metrics.py
 │   ├── test_observability.py
 │   └── test_security_guard.py
@@ -174,7 +183,40 @@ O que é gerado:
 - Relatório Markdown consolidado: [examples/review_report.md](examples/review_report.md)
 - Registro persistente das revisões: `data/reviews.json` (append/atualização)
 - Logs de execução: `logs/` (tempo de execução, eventos, erros)
+- Relatório de anomalias: `reports/anomaly_report.json` com total de eventos, falhas e ocorrências recorrentes
 - Métricas: `metrics/metrics.json` (tempos, sucessos/falhas, retries)
+
+## 9. Análise de logs e detecção de anomalias
+
+A ferramenta `src/tools/log_analyzer.py` lê [logs/app.log](logs/app.log) linha a linha e processa cada payload JSON. Ela identifica:
+
+- `total_events`: quantidade total de eventos registrados
+- `total_failures`: número de eventos com `event == "error"`
+- `anomalies_detected`: indica se houve pelo menos uma falha recorrente
+- `recurring_failures`: lista de padrões repetidos por `node` e `event` com `occurrences >= 2`
+
+Execução manual:
+
+```bash
+python -c "from pathlib import Path; import sys; sys.path.insert(0, str(Path('src').resolve())); from tools.log_analyzer import analyze_log_file; report = analyze_log_file('logs/app.log', 'reports/anomaly_report.json'); print(report); print(report.read_text(encoding='utf-8'))"
+```
+
+Formato do relatório gerado:
+
+```json
+{
+  "total_events": 0,
+  "total_failures": 0,
+  "anomalies_detected": false,
+  "recurring_failures": [
+    {
+      "node": "",
+      "event": "",
+      "occurrences": 0
+    }
+  ]
+}
+```
 
 Quando ocorre envio para o n8n:
 
@@ -183,7 +225,7 @@ Quando ocorre envio para o n8n:
 
 ---
 
-## 9. Fluxo n8n
+## 10. Fluxo n8n
 
 Fluxo esperado no n8n:
 

@@ -100,5 +100,47 @@
       "Comprometimento da Qualidade Geral do Software: A adição de componentes tão críticos (autenticação e login) sem qualquer cobertura de testes demonstra uma falha grave nos processos de desenvolvimento e garantia de qualidade. Isso resulta em aumento da dívida técnica, instabilidade do software, maior custo de correção no futuro e potencial erosão da confiança do usuário."
     ],
     "recommendation": "BLOQUEAR"
+  },
+  {
+    "timestamp": "2026-08-29T19:04:03.174104+00:00",
+    "summary": "Security:\nSem riscos de segurança\n\nQuality:\nSem riscos de qualidade",
+    "risks": [],
+    "recommendation": "APROVAR"
+  },
+  {
+    "timestamp": "2026-08-29T19:04:03.245760+00:00",
+    "summary": "Security:\nFalha na análise\n\nQuality:\nFalha na análise",
+    "risks": [
+      "LLM indisponível",
+      "LLM indisponível"
+    ],
+    "recommendation": "ATENCAO"
+  },
+  {
+    "timestamp": "2026-08-29T19:04:03.342909+00:00",
+    "summary": "Security:\nSem riscos de segurança\n\nQuality:\nSem riscos de qualidade",
+    "risks": [],
+    "recommendation": "APROVAR"
+  },
+  {
+    "timestamp": "2026-08-29T19:04:03.438896+00:00",
+    "summary": "Security:\nSem riscos de segurança\n\nQuality:\nSem riscos de qualidade",
+    "risks": [],
+    "recommendation": "APROVAR"
+  },
+  {
+    "timestamp": "2026-08-29T19:04:03.531398+00:00",
+    "summary": "Security:\nFalha na análise\n\nQuality:\nFalha na análise",
+    "risks": [
+      "LLM indisponível",
+      "LLM indisponível"
+    ],
+    "recommendation": "ATENCAO"
+  },
+  {
+    "timestamp": "2026-08-29T19:04:03.601890+00:00",
+    "summary": "Security:\nSem riscos de segurança\n\nQuality:\nSem riscos de qualidade",
+    "risks": [],
+    "recommendation": "APROVAR"
   }
 ]
