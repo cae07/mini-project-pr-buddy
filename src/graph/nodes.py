@@ -146,11 +146,7 @@ def invoke_llm_with_resilience(state, node, prompt):
     for attempt in range(1, LLM_MAX_ATTEMPTS + 1):
         try:
             return llm.invoke(prompt, config={"timeout": LLM_TIMEOUT_SECONDS})
-        except (
-            TimeoutError,
-            ValueError,
-            requests.RequestException,
-        ) as exc:
+        except Exception as exc:
             last_error = exc
             fallback_activated = attempt >= LLM_MAX_ATTEMPTS
             log_event(
@@ -638,11 +634,7 @@ def send_notification(state):
                 total_risks=len(state.get("risks", []))
             )
             return state
-        except (
-            TimeoutError,
-            ValueError,
-            requests.RequestException,
-        ) as exc:
+        except Exception as exc:
             log_error(state, "send_notification", exc)
             log_event(
                 state,
